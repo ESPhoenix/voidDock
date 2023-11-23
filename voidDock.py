@@ -45,7 +45,7 @@ def main():
     # run docking with multiprocessing
     run_with_multiprocessing(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
     # run in serial (good for debugging. hash out otherwise!)
-    # run_serial(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
+    #run_serial(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
 #########################################################################################################################
 def run_with_multiprocessing(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir):
     numCores = mp.cpu_count()

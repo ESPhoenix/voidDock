@@ -6,7 +6,7 @@ from subprocess import call
 import os.path as p
 from shutil import copy, move
 import pandas as pd
-import sys
+import json
 import ampal 
 import isambard.specifications as specifications 
 import isambard.modelling as modelling
@@ -203,7 +203,7 @@ def set_up_directory(fileName,protDir,ligandDir,outDir,ordersDict):
     return protName, protPdb, ligandPdb, ligandName, runDir
 #########################################################################################################################
 def run_fpocket(name,runDir,pdbFile):
-    print("----->\tRunning Fpocket!")
+    #print("----->\tRunning Fpocket!")
     os.chdir(runDir)
     minSphereSize = "3.0"
     maxSphereSize = "6.0"
@@ -213,15 +213,35 @@ def run_fpocket(name,runDir,pdbFile):
     largestPocketPdb = p.join(fpocketOutDir,"pocket1_atm.pdb")
     ## ERROR Handling
     if not p.isfile(largestPocketPdb):
-        print("--X-->\tFpocket Failed!")
+        #print("--X-->\tFpocket Failed!")
         return
     largestPocketDf = pdb2df(largestPocketPdb)
 
     boxCenter = [largestPocketDf["X"].mean(), largestPocketDf["Y"].mean(),largestPocketDf["Z"].mean()]
     pocketResidues = largestPocketDf["RES_ID"].unique().tolist()
 
-    print("----->\tFpocket Success!")
+    #print("----->\tFpocket Success!")
+
+    extract_pocket_info(runDir=runDir, fpocketOutDir=fpocketOutDir)    
     return boxCenter, pocketResidues
+
+def extract_pocket_info(runDir,fpocketOutDir):
+    ## LOOP THROUGH POCKET FILES ##
+    pocketResidueDict = {}
+    for file in os.listdir(fpocketOutDir):
+        #print(file)
+        ## SKIP VERT FILES ##
+        if not p.splitext(file)[1] == ".pdb":
+            continue
+        filePath = p.join(fpocketOutDir,file)
+        pocketId = file.split("_")[0]
+        pocketDf = pdb2df(filePath)
+        uniqueResIds = pd.unique(pocketDf["RES_ID"]).tolist()
+        pocketResidueDict.update({pocketId:uniqueResIds})
+    jsonDumpFile = p.join(runDir,"pocket_residues_report.json")
+    with open(jsonDumpFile,"w") as jsonFile:
+        json.dump(pocketResidueDict,jsonFile)
+
 #########################################################################################################################
 # read pdb files as pandas dataframes
 def pdb2df(protPdb):
