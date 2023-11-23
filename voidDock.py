@@ -1,13 +1,3 @@
-#       GOALS
-#
-#       Loop over all PDB files in protDir
-#           --> find binding pocket with fpocket                     [x]
-#           ---> convert ligand and          [ ]
-#           ----> create binding poses with CAVER DOCK              [ ]
-#
-#
-#
-#
 #########################################################################################################################
 ## import basic libraries
 import os
@@ -49,23 +39,27 @@ def main():
     # make outDir
     os.makedirs(outDir,exist_ok=True)    
     # read ligand orders csv file into a dictionary
-
     ordersDict = read_docking_orders(ligandOrdersCsv=ligandOrdersCsv)
-
+    # get a list of receptor pdbfiles in receptor directory
     pdbFiles = get_pdb_list(protDir=protDir)
-
-    num_cores = mp.cpu_count()
-    pool = mp.Pool(processes=round(num_cores / 2))
-
-#    for fileName in pdbFiles:
- #       pool.apply_async(docking_protocol, (fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir))
-
+    # run docking with multiprocessing
+    run_with_multiprocessing(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
+    # run in serial (good for debugging. hash out otherwise!)
+    # run_serial(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
+#########################################################################################################################
+def run_with_multiprocessing(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir):
+    numCores = mp.cpu_count()
+    with mp.Pool(processes=round(numCores / 2)) as pool:
+        try:
+            pool.starmap(docking_protocol, [(fileName,protDir, ligandDir,outDir,
+                                             ordersDict,util24Dir,mglToolsDir) for fileName in pdbFiles])
+        except Exception as e:
+            print(f"ERROR: {e}")
+#########################################################################################################################
+def run_serial(pdbFiles,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir):
     for fileName in pdbFiles:
         docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
 
-    # Close the pool to release resources
-    pool.close()
-    pool.join()
 
 #########################################################################################################################
 def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir):
