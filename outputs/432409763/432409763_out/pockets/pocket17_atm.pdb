@@ -12,7 +12,7 @@ HEADER 5  - Mean B-factor of pocket residues  : 0.9704
 HEADER 6  - Hydrophobicity Score              : -3.8000
 HEADER 7  - Polarity Score                    :     4
 HEADER 8  - Amino Acid based volume Score     : 4.4000
-HEADER 9  - Pocket volume (Monte Carlo)       : 262.9200
+HEADER 9  - Pocket volume (Monte Carlo)       : 259.8081
 HEADER 10 - Pocket volume (convex hull)       : 15.6428
 HEADER 11 - Charge Score                      :     0
 HEADER 12 - Local hydrophobic density Score   : 4.0000
