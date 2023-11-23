@@ -20,31 +20,71 @@ import sys
 import ampal 
 import isambard.specifications as specifications 
 import isambard.modelling as modelling
-
+import argpass
 import multiprocessing as mp
-#########################################################################################################################
-def inputs():
-    protDir = "/home/eugene/DOCK_test/input_pdbs"
-    ligandDir = "/home/eugene/DOCK_test/ligands"
-    outDir = "/home/eugene/DOCK_test/outputs"
-    mglToolsDir = "/home/eugene/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
-    util24Dir = "/home/eugene/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
-    vinaExe = "/home/eugene/bin/vina/vina_1.2.5_linux_x86_64"
-    ligandOrdersCsv = "/home/eugene/DOCK_test/ligand_orders.csv"
 
-    return protDir, ligandDir, outDir, mglToolsDir, util24Dir, vinaExe, ligandOrdersCsv
+#########################################################################################################################
+# get inputs
+def read_inputs():
+    # create an argpass parser, read config file, snip off ".py" if on the end of file
+    parser = argpass.ArgumentParser()
+    parser.add_argument("--config")
+    args = parser.parse_args()
+    configName=args.config
+    configName = p.splitext(configName)[0]
+
+    # add config to PYTHONPATH
+    cwd = os.getcwd()
+    configPath = p.join(cwd,configName)
+    sys.path.append(configPath)
+    # import config file and run input function to return variables
+    try:
+        config_module = __import__(configName)
+        (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv) = config_module.inputs()
+        return (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv)
+    except ImportError:
+        print(f"Error: Can't to import module '{configName}'. Make sure the input exists!")
+        print("HOPE IS THE FIRST STEP ON THE ROAD TO DISAPPOINTMENT")
+        exit()
+
+#########################################################################################################################
 #########################################################################################################################
 #########################################################################################################################
 def main():
-    protDir, ligandDir, outDir, mglToolsDir, util24Dir, vinaExe, ligandOrdersCsv = inputs()
+    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
 
     # make outDir
     ifnotmkdir(outDir)    
     # read ligand orders csv file into a dictionary
+
+    ordersDict = read_docking_orders(ligandOrdersCsv=ligandOrdersCsv)
+
+    pdbFiles = get_pdb_list(protDir=protDir)
+
+    num_cores = mp.cpu_count()
+    pool = mp.Pool(processes=round(num_cores / 2))
+
+#    for fileName in pdbFiles:
+ #       pool.apply_async(docking_protocol, (fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir))
+
+    for fileName in pdbFiles:
+        docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir)
+
+    # Close the pool to release resources
+    pool.close()
+    pool.join()
+
+#########################################################################################################################
+#########################################################################################################################
+def read_docking_orders(ligandOrdersCsv):
     ordersDf = pd.read_csv(ligandOrdersCsv,index_col="ID")
-    ordersDf = ordersDf["Cofactor"]
+    ordersDf.index = ordersDf.index.astype(str)
+    ordersDf = ordersDf["Ligand"]
     ordersDict = ordersDf.to_dict()
 
+    return ordersDict
+#########################################################################################################################
+def get_pdb_list(protDir):
     pdbFiles =[]
     # loop through receptor PDB files
     for fileName in os.listdir(protDir):
@@ -53,21 +93,9 @@ def main():
         if not fileData[1] == ".pdb":
             continue
         pdbFiles.append(fileName)
-
-    num_cores = mp.cpu_count()
-    pool = mp.Pool(processes=round(num_cores / 2))
-
-    for fileName in pdbFiles:
-        pool.apply_async(docking_protocol, (fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir,vinaExe))
-
-    # Close the pool to release resources
-    pool.close()
-    pool.join()
-
+    return pdbFiles
 #########################################################################################################################
-#########################################################################################################################
-
-def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir,vinaExe):
+def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mglToolsDir):
     # set up run directory and output key variables
     protName, protPdb, ligandPdb, ligandName, runDir = set_up_directory(fileName=fileName,
                                                                             protDir=protDir,
@@ -105,8 +133,7 @@ def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mgl
                                                             boxSize = 30)
     # Run vina docking
     run_vina(outDir = runDir,
-                configFile = vinaConfig,
-                vinaExe = vinaExe)
+                configFile = vinaConfig)
     # split docking results PDBQT file into separate PDB files
     process_vina_results(outDir = runDir,
                             receptorPdbqt = alaPdbtq,
@@ -165,10 +192,10 @@ def process_vina_results(outDir,dockedPdbqt,receptorPdbqt):
         df_to_pdb(df = newDf,outFile=writePdbFile)
 
 #########################################################################################################################
-def run_vina(outDir,configFile,vinaExe):
+def run_vina(outDir,configFile):
     logFile = p.join(outDir,"vina_docking.log")
     with open(logFile,"a") as logFile:
-        call([vinaExe,"--config",configFile],stdout=logFile)
+        call(["vina","--config",configFile],stdout=logFile)
 #########################################################################################################################
 ## writes a config file for a Vina docking simulation
 def write_vina_config(outDir,receptorPdbqt,ligandPdbqt,boxCenter,boxSize,flexPdbqt=None,
@@ -229,36 +256,6 @@ def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, outDir):
     return alaPdb
 
 #########################################################################################################################
-def select_flexible_residues(protName,protPdb,flexResList):
-    # load protein PDB as a DF
-    protDf = pdb2df(protPdb)
-    # reduce DF down to unique residues in flexResList (created from binding pocket)
-    flexDf = protDf[protDf["RES_ID"].isin(flexResList)]
-    flexDf.drop_duplicates(subset=["RES_ID"], inplace=True)
-    # remove static residues from flexible residues (no dihedrals to rotate anyway!)
-    staticResidues = ["ALA","PRO","GLY"]
-    flexDf = flexDf[~flexDf["RES_NAME"].isin(staticResidues)]
-    # get a list of unique CHAIN IDs
-    uniqueChains = flexDf.drop_duplicates(subset=["CHAIN_ID"])["CHAIN_ID"].tolist()
-    # generate MGLTools compatable flexible residues
-    flexResidues=[]
-    for chain in uniqueChains:
-        chainBlock=[]
-        for _, row in flexDf.iterrows():
-            if row["CHAIN_ID"]==chain:
-                resName = row["RES_NAME"]
-                resSeq = row["RES_ID"]
-                selection=f"{resName}{resSeq}"
-                chainBlock.append(selection)
-        chainBlock="_".join(chainBlock)
-        chainBlock=f"{protName}:{chain}:{chainBlock}"
-        flexResidues.append(chainBlock)
-    
-    flexResidues=",".join(flexResidues)
-    return flexResidues            
-
-#########################################################################################################################
-
 def pdb_to_pdbqt(name, pdbFile, outDir, util24Dir, mglToolsDir,jobType,flexRes=None):
     env = os.environ.copy()
     env["PYTHONPATH"] = mglToolsDir
@@ -269,7 +266,7 @@ def pdb_to_pdbqt(name, pdbFile, outDir, util24Dir, mglToolsDir,jobType,flexRes=N
 
     if jobType == "rigid":
         protPdbqt = p.join(outDir,"{}.pdbqt".format(name))
-        call(["python2",prepReceptorPy,"-r",pdbFile,"-o",protPdbqt],env=env)
+        call(["python2.7",prepReceptorPy,"-r",pdbFile,"-o",protPdbqt],env=env)
         return protPdbqt
 
     elif jobType == "flex":
@@ -278,12 +275,12 @@ def pdb_to_pdbqt(name, pdbFile, outDir, util24Dir, mglToolsDir,jobType,flexRes=N
             return
         rigidPdbqt = p.join(outDir,f"{name}_rigid.pdbqt")
         flexPdbqt = p.join(outDir,f"{name}_flex.pdbqt")
-        call(["python2",prepReceptorPy,"-r",pdbFile,"-s",flexRes,"-g",rigidPdbqt,"-x",flexPdbqt],env=env)
+        call(["python2.7",prepReceptorPy,"-r",pdbFile,"-s",flexRes,"-g",rigidPdbqt,"-x",flexPdbqt],env=env)
         return rigidPdbqt, flexPdbqt
     
     elif jobType == "ligand":
         ligandPdbqt = p.join(outDir,f"{name}.pdbqt")
-        call(["python2",prepligandPy,"-l",pdbFile,"-o",ligandPdbqt],env=env)
+        call(["python2.7",prepligandPy,"-l",pdbFile,"-o",ligandPdbqt],env=env)
         return ligandPdbqt
 
 #########################################################################################################################
