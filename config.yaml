@@ -4,12 +4,12 @@
 # outDir - location to save output to
 # ligandOrdersCsv - csv file containing a list of [proteinID,ligandID] to dock
 dockingTargetsInfo: 
-  protDir: "/home/mchrnwsk/voidDock/receptors1"
-  ligandDir: "/home/mchrnwsk/voidDock/ligands1"
-  outDir: "/home/mchrnwsk/voidDock/outputs1"
-  ligandOrdersCsv: "/home/mchrnwsk/voidDock/docking_commands1.csv"
+  protDir: "/home/{username}/voidDock/receptors"
+  ligandDir: "/home/{username}/voidDock/ligands"
+  outDir: "/home/{username}/voidDock/outputs"
+  ligandOrdersCsv: "/home/{username}/voidDock/docking_commands.csv"
 
 # paths to MGLTools utilities
 toolInfo:
-  mglToolsDir: "/home/mchrnwsk/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
-  util24Dir: "/home/mchrnwsk/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
+  mglToolsDir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
+  util24Dir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
