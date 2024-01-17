@@ -60,26 +60,25 @@ pip3 install vina
 
 ## Step 5: Create Config File
 
-Create a Python script for the configuration file, e.g., `config.py`. Fill in the required paths:
-```python
-def inputs():
-    protDir = "path/to/receptor/pdb/files"
-    ligandDir = "path/to/receptor/pdb/files"
-    outDir = "path/to/desired/output/files"
-    mglToolsDir = "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
-    util24Dir = "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
-    ligandOrdersCsv = "path/to/ligands_for_binding.csv"
-
-    return protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv
+Create a YAML script for the configuration file, e.g., `config.yaml`. Fill in the required paths:
+```
+dockingTargetsInfo: 
+  protDir: "/home/{username}/voidDock/receptors"
+  ligandDir: "/home/{username}/voidDock/ligands"
+  outDir: "/home/{username}/voidDock/outputs"
+  ligandOrdersCsv: "/home/{username}/voidDock/docking_commands.csv"
+toolInfo:
+  mglToolsDir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
+  util24Dir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
 ```
 
-**Note:** Replace `{username}` and update file paths accordingly in the above commands. Make sure to adjust permissions and paths based on your system configuration.
+**Note:** Replace `{username}` and update file paths accordingly in the above commands. Make sure to adjust permissions and paths based on your system configuration. Do not change the structure of the file, aka 'dockingTargetsInfo' and 'toolINfo' is needed.
 
 ## Step 6: Run voidDock
 Run the voidDock script with the provided configuration file:
 
 ```bash
-python voidDock.py --config config.py
+python voidDock.py --config config.yaml
 ```
 
 happy voidDocking!
