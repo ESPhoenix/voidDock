@@ -5,7 +5,7 @@ import os.path as p
 import sys
 import argpass
 import multiprocessing as mp
-
+import yaml
 ## inport util scripts
 from util_voidDock import *
 #########################################################################################################################
@@ -16,7 +16,12 @@ def read_inputs():
     parser.add_argument("--config")
     args = parser.parse_args()
     configName=args.config
-    configName = p.splitext(configName)[0]
+#    configName = p.splitext(configName)[0]
+
+    ## Read config.yaml into a dictionary
+    with open(configName,"r") as yamlFile:
+        configName = yaml.safe_load(yamlFile) 
+    return configName
 
     # add config to PYTHONPATH
     cwd = os.getcwd()
@@ -34,7 +39,15 @@ def read_inputs():
 
 #########################################################################################################################
 def main():
-    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
+#    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
+
+    configName = read_inputs()
+    protDir = configName["dockingTargetsInfo"]["protDir"]
+    ligandDir = configName["dockingTargetsInfo"]["ligandDir"]
+    outDir = configName["dockingTargetsInfo"]["outDir"]
+    mglToolsDir = configName["toolInfo"]["mglToolsDir"]
+    util24Dir = configName["toolInfo"]["util24Dir"]
+    ligandOrdersCsv = configName["dockingTargetsInfo"]["ligandOrdersCsv"]
 
     # make outDir
     os.makedirs(outDir,exist_ok=True)    
