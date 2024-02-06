@@ -16,27 +16,11 @@ def read_inputs():
     parser.add_argument("--config")
     args = parser.parse_args()
     configName=args.config
-#    configName = p.splitext(configName)[0]
 
     ## Read config.yaml into a dictionary
     with open(configName,"r") as yamlFile:
         configName = yaml.safe_load(yamlFile) 
     return configName
-
-    # add config to PYTHONPATH
-    cwd = os.getcwd()
-    configPath = p.join(cwd,configName)
-    sys.path.append(configPath)
-    # import config file and run input function to return variables
-    try:
-        config_module = __import__(configName)
-        (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv) = config_module.inputs()
-        return (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv)
-    except ImportError:
-        print(f"Error: Can't to import module '{configName}'. Make sure the input exists!")
-        print("HOPE IS THE FIRST STEP ON THE ROAD TO DISAPPOINTMENT")
-        exit()
-
 #########################################################################################################################
 def main():
 #    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
