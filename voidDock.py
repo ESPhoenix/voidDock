@@ -10,20 +10,27 @@ import yaml
 from util_voidDock import *
 #########################################################################################################################
 # get inputs
-def read_inputs():
-    # create an argpass parser, read config file
-    parser = argpass.ArgumentParser()
-    parser.add_argument("--config")
-    args = parser.parse_args()
-    configName=args.config
+def read_inputs(config_file=None):
+    if config_file:
+        # read config.yaml from the provided file path
+        with open(config_file, "r") as yamlFile:
+            config = yaml.safe_load(yamlFile)
+    else:   
+        # create an argpass parser, read config file from command line arguments
+        parser = argpass.ArgumentParser()
+        parser.add_argument("--config")
+        args = parser.parse_args()
+        config_file=args.config
+        
+        if not config_file:
+            raise ValueError("Configuration file path not provided via command line.")
 
-    ## Read config.yaml into a dictionary
-    with open(configName,"r") as yamlFile:
-        configName = yaml.safe_load(yamlFile) 
-    return configName
+        ## read config.yaml into a dictionary
+        with open(config_file,"r") as yamlFile:
+            config_file = yaml.safe_load(yamlFile) 
+        return config_file
 #########################################################################################################################
 def main():
-#    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
 
     configName = read_inputs()
     protDir = configName["dockingTargetsInfo"]["protDir"]
