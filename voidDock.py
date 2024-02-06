@@ -10,11 +10,11 @@ import yaml
 from util_voidDock import *
 #########################################################################################################################
 # get inputs
-def read_inputs(config_file=None):
+def read_inputs(config_file):
     if config_file:
         # read config.yaml from the provided file path
         with open(config_file, "r") as yamlFile:
-            config = yaml.safe_load(yamlFile)
+            configName = yaml.safe_load(yamlFile)
     else:   
         # create an argpass parser, read config file from command line arguments
         parser = argpass.ArgumentParser()
@@ -27,12 +27,13 @@ def read_inputs(config_file=None):
 
         ## read config.yaml into a dictionary
         with open(config_file,"r") as yamlFile:
-            config_file = yaml.safe_load(yamlFile) 
-        return config_file
+            configName = yaml.safe_load(yamlFile)
+            
+    return configName
 #########################################################################################################################
-def main():
+def main(config_file):
 
-    configName = read_inputs()
+    configName = read_inputs(config_file)
     protDir = configName["dockingTargetsInfo"]["protDir"]
     ligandDir = configName["dockingTargetsInfo"]["ligandDir"]
     outDir = configName["dockingTargetsInfo"]["outDir"]
@@ -111,4 +112,5 @@ def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mgl
                             dockedPdbqt = dockedPdbqt)
 
 #########################################################################################################################
-main()
+if __name__ == "__main__":
+    main(config_file=None)
