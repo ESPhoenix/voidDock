@@ -5,7 +5,7 @@ import os.path as p
 import sys
 import argpass
 import multiprocessing as mp
-
+import yaml
 ## inport util scripts
 from util_voidDock import *
 #########################################################################################################################
@@ -16,25 +16,22 @@ def read_inputs():
     parser.add_argument("--config")
     args = parser.parse_args()
     configName=args.config
-    configName = p.splitext(configName)[0]
 
-    # add config to PYTHONPATH
-    cwd = os.getcwd()
-    configPath = p.join(cwd,configName)
-    sys.path.append(configPath)
-    # import config file and run input function to return variables
-    try:
-        config_module = __import__(configName)
-        (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv) = config_module.inputs()
-        return (protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv)
-    except ImportError:
-        print(f"Error: Can't to import module '{configName}'. Make sure the input exists!")
-        print("HOPE IS THE FIRST STEP ON THE ROAD TO DISAPPOINTMENT")
-        exit()
-
+    ## Read config.yaml into a dictionary
+    with open(configName,"r") as yamlFile:
+        configName = yaml.safe_load(yamlFile) 
+    return configName
 #########################################################################################################################
 def main():
-    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
+#    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
+
+    configName = read_inputs()
+    protDir = configName["dockingTargetsInfo"]["protDir"]
+    ligandDir = configName["dockingTargetsInfo"]["ligandDir"]
+    outDir = configName["dockingTargetsInfo"]["outDir"]
+    mglToolsDir = configName["toolInfo"]["mglToolsDir"]
+    util24Dir = configName["toolInfo"]["util24Dir"]
+    ligandOrdersCsv = configName["dockingTargetsInfo"]["ligandOrdersCsv"]
 
     # make outDir
     os.makedirs(outDir,exist_ok=True)    
