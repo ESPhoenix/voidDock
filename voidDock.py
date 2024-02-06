@@ -10,22 +10,30 @@ import yaml
 from util_voidDock import *
 #########################################################################################################################
 # get inputs
-def read_inputs():
-    # create an argpass parser, read config file, snip off ".py" if on the end of file
-    parser = argpass.ArgumentParser()
-    parser.add_argument("--config")
-    args = parser.parse_args()
-    configName=args.config
+def read_inputs(config_file):
+    if config_file:
+        # read config.yaml from the provided file path
+        with open(config_file, "r") as yamlFile:
+            configName = yaml.safe_load(yamlFile)
+    else:   
+        # create an argpass parser, read config file from command line arguments
+        parser = argpass.ArgumentParser()
+        parser.add_argument("--config")
+        args = parser.parse_args()
+        config_file=args.config
+        
+        if not config_file:
+            raise ValueError("Configuration file path not provided via command line.")
 
-    ## Read config.yaml into a dictionary
-    with open(configName,"r") as yamlFile:
-        configName = yaml.safe_load(yamlFile) 
+        ## read config.yaml into a dictionary
+        with open(config_file,"r") as yamlFile:
+            configName = yaml.safe_load(yamlFile)
+            
     return configName
 #########################################################################################################################
-def main():
-#    protDir, ligandDir, outDir, mglToolsDir, util24Dir, ligandOrdersCsv = read_inputs()
+def main(config_file):
 
-    configName = read_inputs()
+    configName = read_inputs(config_file)
     protDir = configName["dockingTargetsInfo"]["protDir"]
     ligandDir = configName["dockingTargetsInfo"]["ligandDir"]
     outDir = configName["dockingTargetsInfo"]["outDir"]
@@ -104,4 +112,5 @@ def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mgl
                             dockedPdbqt = dockedPdbqt)
 
 #########################################################################################################################
-main()
+if __name__ == "__main__":
+    main(config_file=None)
