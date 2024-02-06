@@ -10,30 +10,30 @@ import yaml
 from util_voidDock import *
 #########################################################################################################################
 # get inputs
-def read_inputs(config_file):
-    if config_file:
+def read_inputs(configFile):
+    if configFile:
         # read config.yaml from the provided file path
-        with open(config_file, "r") as yamlFile:
+        with open(configFile, "r") as yamlFile:
             configName = yaml.safe_load(yamlFile)
     else:   
         # create an argpass parser, read config file from command line arguments
         parser = argpass.ArgumentParser()
         parser.add_argument("--config")
         args = parser.parse_args()
-        config_file=args.config
+        configFile=args.config
         
-        if not config_file:
+        if not configFile:
             raise ValueError("Configuration file path not provided via command line.")
 
         ## read config.yaml into a dictionary
-        with open(config_file,"r") as yamlFile:
+        with open(configFile,"r") as yamlFile:
             configName = yaml.safe_load(yamlFile)
             
     return configName
 #########################################################################################################################
-def main(config_file):
+def main(configFile):
 
-    configName = read_inputs(config_file)
+    configName = read_inputs(configFile)
     protDir = configName["dockingTargetsInfo"]["protDir"]
     ligandDir = configName["dockingTargetsInfo"]["ligandDir"]
     outDir = configName["dockingTargetsInfo"]["outDir"]
@@ -113,4 +113,4 @@ def docking_protocol(fileName,protDir, ligandDir,outDir,ordersDict,util24Dir,mgl
 
 #########################################################################################################################
 if __name__ == "__main__":
-    main(config_file=None)
+    main(configFile=None)
