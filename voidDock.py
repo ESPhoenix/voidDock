@@ -20,7 +20,7 @@ def read_inputs(configFile):
         parser = argpass.ArgumentParser()
         parser.add_argument("--config")
         args = parser.parse_args()
-        config_file=args.config
+        configFile=args.config
         
         if not configFile:
             raise ValueError("Configuration file path not provided via command line.")
