@@ -11,7 +11,7 @@ from util_voidDock import *
 #########################################################################################################################
 # get inputs
 def read_inputs():
-    # create an argpass parser, read config file, snip off ".py" if on the end of file
+    # create an argpass parser, read config file
     parser = argpass.ArgumentParser()
     parser.add_argument("--config")
     args = parser.parse_args()
