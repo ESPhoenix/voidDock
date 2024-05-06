@@ -28,6 +28,14 @@ Install required Python libraries:
 
 ```bash
 pip install -r requirements.txt
+
+conda config --add channels conda-forge
+conda config --set channel_priority strict
+conda install openbabel
+conda install fpocket
+conda install vina
+
+
 ```
 
 ## Step 4: Create Config File
