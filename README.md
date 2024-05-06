@@ -7,8 +7,12 @@ Docking Protocol:
     5  Process results into one PDB file per docking pose
 
 # voidDock Installation
+## Step 1: Clone this repository
+```bash
+git clone https://github.com/ESPhoenix/voidDock
+```
 
-## Step 1: Create Python Environment
+## Step 2: Create Python Environment
 
 Create a Python environment using Conda:
 ```bash
@@ -18,7 +22,7 @@ conda create -n voidDock37 python=3.7
 conda activate voidDock37
 ```
 
-## Step 2: Install Python3 Libraries
+## Step 3: Install Python3 Libraries
 
 Install required Python libraries:
 
@@ -26,7 +30,7 @@ Install required Python libraries:
 pip install -r requirements.txt
 ```
 
-## Step 3: Create Config File
+## Step 4: Create Config File
 
 Create a YAML script for the configuration file, e.g., `config.yaml`. Fill in the required paths and information:
 ```yaml
@@ -70,7 +74,7 @@ dockingOrders:
 Replace all other information with your desired inputs.
 Make sure to adjust permissions and paths based on your system configuration. Do not change the structure of the file, aka 'dockingTargetsInfo' 
 
-## Step 4: Run voidDock
+## Step 5: Run voidDock
 Run the voidDock script with the provided configuration file:
 
 ```bash
