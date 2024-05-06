@@ -2,14 +2,24 @@
 # protDir - directory containing the protein(s)
 # ligandDir - directory containing the ligand(s)
 # outDir - location to save output to
-# ligandOrdersCsv - csv file containing a list of [proteinID,ligandID] to dock
-dockingTargetsInfo: 
-  protDir: "/home/{username}/voidDock/receptors"
-  ligandDir: "/home/{username}/voidDock/ligands"
-  outDir: "/home/{username}/voidDock/outputs"
-  ligandOrdersCsv: "/home/{username}/voidDock/docking_commands.csv"
 
-# paths to MGLTools utilities
-toolInfo:
-  mglToolsDir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
-  util24Dir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
+dockingTargetsInfo: 
+  protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
+  ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
+  outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
+  dockingOrdersYaml: "/home/esp/scriptDevelopment/voidDock/dockingOrders.yaml"
+
+cpuInfo:
+  totalCpuUsage: 8
+  cpusPerRun: 2
+
+dockingOrders:
+  - protein: "134189607" 
+    ligand: "Lumoflavin"
+    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
+  - protein: "134189607"  
+    ligand: "FAD"
+    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
+  - protein: "62562582"
+    ligand: "Lumoflavin"
+    pocketResidues: ["A:ASN:60", "A:LYS:78", "A:ALA:77", "A:ILE:62"]

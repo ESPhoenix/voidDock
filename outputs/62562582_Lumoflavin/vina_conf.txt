@@ -1,0 +1,19 @@
+receptor = /home/esp/scriptDevelopment/voidDock/outputs/62562582_Lumoflavin/62562582_pocketAla.pdbqt
+ligand = /home/esp/scriptDevelopment/voidDock/outputs/62562582_Lumoflavin/Lumoflavin.pdbqt
+
+center_x = 2.9295000000000004
+center_y = 2.144145833333333
+center_z = 15.068947916666666
+
+size_x = 30
+size_y = 30
+size_z = 30
+
+exhaustiveness = 16
+num_modes = 10
+energy_range = 5
+
+seed = 42
+
+out = /home/esp/scriptDevelopment/voidDock/outputs/62562582_Lumoflavin/binding_poses.pdbqt
+cpu = 2

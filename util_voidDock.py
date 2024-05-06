@@ -2,6 +2,7 @@
 ## import basic libraries
 from itertools import chain
 import os
+import subprocess
 from subprocess import call
 import os.path as p
 from shutil import copy, move
@@ -10,36 +11,19 @@ import json
 import ampal 
 import isambard.specifications as specifications 
 import isambard.modelling as modelling
-####################################################################################################################
-def read_docking_orders(ligandOrdersCsv):
-    ordersDf = pd.read_csv(ligandOrdersCsv,index_col="ID")
-    ordersDf.index = ordersDf.index.astype(str)
-    ordersDf = ordersDf["Ligand"]
-    ordersDict = ordersDf.to_dict()
+import yaml
 
-    return ordersDict
+from pdbUtils import pdbUtils
+
 #########################################################################################################################
-def get_pdb_list(protDir):
-    pdbFiles =[]
-    # loop through receptor PDB files
-    for fileName in os.listdir(protDir):
-        # Extract file name, skip if not a PDB file
-        fileData = p.splitext(fileName)
-        if not fileData[1] == ".pdb":
-            continue
-        pdbFiles.append(fileName)
-    return pdbFiles
-#########################################################################################################################
-#########################################################################################################################
-def process_vina_results(outDir,dockedPdbqt,receptorPdbqt,flex=False):
+def process_vina_results(protName, ligandName, outDir,dockedPdbqt,receptorPdbqt):
     # read output pdbqt file into a list of dataframes
     dockingDfList = read_docking_results(dockedPdbqt)
-    receptorDf = pdbqt2df(receptorPdbqt)
+    receptorDf = pdbUtils.pdbqt2df(receptorPdbqt)
     
-    splice_docking_results(dockingDfList, receptorDf,outDir)
-
+    splice_docking_results(protName, ligandName, dockingDfList, receptorDf,outDir)
 #########################################################################################################################
-def splice_docking_results(dockingDfList, receptorDf, outDir):
+def splice_docking_results(protName, ligandName, dockingDfList, receptorDf, outDir):
     finalPdbDir = p.join(outDir,"final_docked_pdbs")
     os.makedirs(finalPdbDir,exist_ok=True)
     ## loop over each pose in dockingDfList
@@ -67,8 +51,8 @@ def splice_docking_results(dockingDfList, receptorDf, outDir):
         # re-do atom numbers
         wholeDf.loc[:,"ATOM_ID"] = range(1,len(wholeDf)+1)
         # save as pdb file
-        saveFile = p.join(finalPdbDir, f"docked_pose_{str(poseNumber)}.pdb")
-        df_to_pdb(df=wholeDf,outFile=saveFile)
+        saveFile = p.join(finalPdbDir, f"{protName}_{ligandName}_{str(poseNumber)}.pdb")
+        pdbUtils.df2pdb(df=wholeDf,outFile=saveFile)
 
 #########################################################################################################################
 def read_docking_results(dockedPdbqt):
@@ -144,14 +128,28 @@ def write_vina_config(outDir,receptorPdbqt,ligandPdbqt,boxCenter,boxSize,flexPdb
         outFile.write(f"cpu = {cpus}")
 
         return vinaConfigFile, dockedPdbqt
+
+
 #########################################################################################################################
 def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, outDir):
-    residuesToAlanine = [int(res) for res in residuesToAlanine]
+    residuesToAlanine = [residue for residue in residuesToAlanine]
 
-    protDf = pdb2df(pdbFile)
+    protDf = pdbUtils.pdb2df(pdbFile)
+
+    pocketResidues_set = set((d['CHAIN_ID'], d['RES_ID']) for d in residuesToAlanine)
+
+    def change_res_name(row):
+        if (row['CHAIN_ID'], row['RES_ID']) in pocketResidues_set:
+            return 'ALA'
+        else:
+            return row['RES_NAME']
+    protDf['RES_NAME'] = protDf.apply(change_res_name, axis=1)
+
+    tmpPdb = p.join(outDir, f"{protName}_tmp.pdb")
+    pdbUtils.df2pdb(protDf, tmpPdb)
+
     firstResidue = int(protDf.iloc[0]["RES_ID"])
-
-    protAmpal = ampal.load_pdb(pdbFile)
+    protAmpal = ampal.load_pdb(tmpPdb)
     seqlength = len(protAmpal.sequences[0])
     newSequence = ''
     for i in range(firstResidue,firstResidue+seqlength):
@@ -166,145 +164,105 @@ def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, outDir):
         file.write(alaPdbString)
     return alaPdb
 #########################################################################################################################
-def pdb_to_pdbqt(name, pdbFile, outDir, util24Dir, mglToolsDir,jobType,flexRes=None):
-    env = os.environ.copy()
-    env["PYTHONPATH"] = mglToolsDir
-    os.chdir(outDir)
-    prepReceptorPy = p.join(util24Dir, "prepare_receptor4.py")
-    prepligandPy = p.join(util24Dir,"prepare_ligand4.py")
-
-    if jobType == "rigid":
-        protPdbqt = p.join(outDir,"{}.pdbqt".format(name))
-        call(["python2.7",prepReceptorPy,"-r",pdbFile,"-o",protPdbqt],env=env)
-        return protPdbqt
-
-    
+def pdb_to_pdbqt(inPdb, outDir, jobType):
+    name = p.splitext(p.basename(inPdb))[0]
+    outPdbqt = p.join(outDir, f"{name}.pdbqt")
+    if jobType == "flex":
+        obabelCommand = ["obabel", "-i","pdb", inPdb, "-o", "pdbqt", "-O", outPdbqt, "-xs"]
+    elif jobType == "rigid":
+        obabelCommand = ["obabel", "-i","pdb", inPdb, "-o", "pdbqt", "-O", outPdbqt, "-xr"]
     elif jobType == "ligand":
-        ligandPdbqt = p.join(outDir,f"{name}.pdbqt")
-        call(["python2.7",prepligandPy,"-l",pdbFile,"-o",ligandPdbqt],env=env)
-        return ligandPdbqt
+        obabelCommand = ["obabel", "-i","pdb", inPdb, "-o", "pdbqt", "-O", outPdbqt, "-xn"]
+    call(obabelCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    with open(outPdbqt,"r") as f:
+        fileContents = f.read()
+    fileContents = fileContents.replace("NA", "N ")
+
+    with open(outPdbqt,"w") as f:
+        f.write(fileContents)
+
+
+    return outPdbqt
 
 #########################################################################################################################
-def set_up_directory(fileName,protDir,ligandDir,outDir,ordersDict):
-    fileData = p.splitext(fileName)
-    protPdb = p.join(protDir,fileName)
-    protName = fileData[0]
-    runDir = p.join(outDir,protName)
+def set_up_directory(protName, protDir, ligandName, ligandDir, outDir):
+    runDir = p.join(outDir,f"{protName}_{ligandName}")
     os.makedirs(runDir,exist_ok=True)
-    copy(protPdb,runDir)
-    protPdb = p.join(runDir,f"{protName}.pdb")
 
-    # identify ligand 
-    ligandName = ordersDict[protName]
+    ## copy protPdb to runDir
+    protPdb = p.join(protDir, f"{protName}.pdb")
+    if not p.isfile(protPdb):
+        print(f"Can't find pdb file:\n\t{protPdb}")
+        return
+    copy(protPdb,runDir)
+    protPdb = p.join(runDir, f"{protName}.pdb")
+
+    ## copy ligandPdb to runDir
     ligandPdb = p.join(ligandDir,f"{ligandName}.pdb")
+    if not p.isfile(ligandPdb):
+        print(f"Can't find pdb file:\n\t{ligandPdb}")
+        return
     copy(ligandPdb,runDir)
     ligandPdb = p.join(runDir,f"{ligandName}.pdb")
 
-    return protName, protPdb, ligandPdb, ligandName, runDir
+    return protPdb, ligandPdb, runDir
 #########################################################################################################################
-def run_fpocket(name,runDir,pdbFile):
+def directed_fpocket(protName,runDir,pdbFile, targetPocketResidues):
     #print("----->\tRunning Fpocket!")
     os.chdir(runDir)
     minSphereSize = "3.0"
     maxSphereSize = "6.0"
-    call(["fpocket","-f",pdbFile,"-m",minSphereSize,"-M",maxSphereSize])
-    fpocketOutDir = p.join(runDir,f"{name}_out","pockets")
-    ## ASSUMPTION == LARGEST POCKET IS OUR BINDING POCKET ## Not really true!
-    largestPocketPdb = p.join(fpocketOutDir,"pocket1_atm.pdb")
-    ## ERROR Handling
-    if not p.isfile(largestPocketPdb):
-        #print("--X-->\tFpocket Failed!")
-        return
-    largestPocketDf = pdb2df(largestPocketPdb)
+    call(["fpocket","-f",pdbFile,"-m",minSphereSize,"-M",maxSphereSize], stdout=subprocess.PIPE)
+    fpocketOutDir = p.join(runDir,f"{protName}_out","pockets")
+    targetResidueCounts = {}
+    ## look at all the pockets that FPocket finds, count how many target residues are in each pocket
+    for file in os.listdir(fpocketOutDir):
+        targetResidueCount = 0
+        fileData = p.splitext(file)
+        if not fileData[1] == ".pdb":
+            continue
+        pocketPdb = p.join(fpocketOutDir,file)
+        pocketDf = pdbUtils.pdb2df(pocketPdb)
+        for targetRes in targetPocketResidues:
+            resData = targetRes.split(":")
+            targetChain = resData[0]
+            targetResId = int(resData[2])
 
-    boxCenter = [largestPocketDf["X"].mean(), largestPocketDf["Y"].mean(),largestPocketDf["Z"].mean()]
-    pocketResidues = largestPocketDf["RES_ID"].unique().tolist()
+            targetDf = pocketDf[(pocketDf["CHAIN_ID"] == targetChain) &
+                                 (pocketDf["RES_ID"] == targetResId)]
+            if len(targetDf) > 0:
+                targetResidueCount += 1
+        pocketId = fileData[0].split("_")[0]
+        targetResidueCounts.update({pocketId: targetResidueCount})
+
+
+    ## select the pocket with the most active site residues
+    bindingPocketId = max(targetResidueCounts, key = targetResidueCounts.get)
+    bindingPocketPdb = p.join(fpocketOutDir,f"{bindingPocketId}_atm.pdb")
+    bindingPocketDf = pdbUtils.pdb2df(bindingPocketPdb)
+
+
+    boxCenter = [bindingPocketDf["X"].mean(), bindingPocketDf["Y"].mean(),bindingPocketDf["Z"].mean()]
+
+    pocketChains = bindingPocketDf["CHAIN_ID"].to_list()
+    pocketResNames = bindingPocketDf["RES_NAME"].to_list()
+    pocketResIds = bindingPocketDf["RES_ID"].to_list()
+
+    uniqueResidues = set(zip(pocketChains, pocketResNames, pocketResIds))
+    pocketResidues = [{"CHAIN_ID":chainId, "RES_NAME": resName, "RES_ID" :resId} for
+                       chainId, resName, resId in uniqueResidues]
+    pocketResidues = sorted(pocketResidues, key=lambda x: (x['CHAIN_ID'], x['RES_ID']))
+
+    ## dump to yaml
+    pocketResiduesYaml = p.join(runDir,f"{protName}_pocket_residues.yaml")
+    with open(pocketResiduesYaml,"w") as yamlFile:
+        yaml.dump(pocketResidues, yamlFile, default_flow_style=False)
 
     #print("----->\tFpocket Success!")
 
-    extract_pocket_info(runDir=runDir, fpocketOutDir=fpocketOutDir)    
     return boxCenter, pocketResidues
-
-def extract_pocket_info(runDir,fpocketOutDir):
-    ## LOOP THROUGH POCKET FILES ##
-    pocketResidueDict = {}
-    for file in os.listdir(fpocketOutDir):
-        #print(file)
-        ## SKIP VERT FILES ##
-        if not p.splitext(file)[1] == ".pdb":
-            continue
-        filePath = p.join(fpocketOutDir,file)
-        pocketId = file.split("_")[0]
-        pocketDf = pdb2df(filePath)
-        uniqueResIds = pd.unique(pocketDf["RES_ID"]).tolist()
-        pocketResidueDict.update({pocketId:uniqueResIds})
-    jsonDumpFile = p.join(runDir,"pocket_residues_report.json")
-    with open(jsonDumpFile,"w") as jsonFile:
-        json.dump(pocketResidueDict,jsonFile)
-
 #########################################################################################################################
-# read pdb files as pandas dataframes
-def pdb2df(protPdb):
-    columns = ['ATOM', 'ATOM_ID', 'ATOM_NAME', 'RES_NAME', 'CHAIN_ID', 'RES_ID', 'X', 'Y', 'Z', 'OCCUPANCY', 'BETAFACTOR', 'ELEMENT']
-    data = []
-    with open(protPdb, 'r') as pdb_file:
-        for line in pdb_file:
-            if line.startswith('ATOM') or line.startswith('HETATM'):
-                atom_type = line[0:6].strip()
-                atom_id = int(line[6:11].strip())
-                atom_name = line[12:16].strip()
-                res_name = line[17:20].strip()
-                chain_id = line[21:22].strip()
-                if chain_id == '':
-                    chain_id = None
-                res_id = int(line[22:26].strip())
-                x = float(line[30:38].strip())
-                y = float(line[38:46].strip())
-                z = float(line[46:54].strip())
-                occupancy = float(line[54:60].strip())
-                temp_factor = float(line[60:66].strip())
-                element = line[76:78].strip()
 
-                data.append([atom_type, atom_id, atom_name, res_name, chain_id, res_id, x, y, z, occupancy, temp_factor, element])
 
-    return pd.DataFrame(data, columns=columns)
-##########################
-# reads a pdbqt file to pandas dataframe
-def pdbqt2df(pdbqtFile):
-    # remove ROOT/BRANCH    
-    pdbqtColumns    =   ["ATOM","ATOM_ID", "ATOM_NAME", "RES_NAME",
-                    "CHAIN_ID", "RES_ID", "X", "Y", "Z", "OCCUPANCY", 
-                    "BETAFACTOR","CHARGE", "ELEMENT"]
-    columsNums = [(0, 6), (6, 11), (11, 17), (17, 21), (21, 22), (22, 26), 
-                  (26, 38), (38, 46), (46, 54), (54, 60), (60, 70), (70, 77), (77, 79)]
 
-    # read pdbqt file        
-    data = []
-    with open(pdbqtFile, 'r') as file:
-        for line in file:
-            if line.startswith("ATOM") or line.startswith("HETATM"):
-                record = [line[start:end].strip() for start, end in columsNums]
-                data.append(record)
-    df = pd.DataFrame(data,columns=pdbqtColumns)
-    # set appropriate types for elements in dataframe
-    df[["ATOM_ID","RES_ID"]] = df[["ATOM_ID","RES_ID"]].astype(int)
-    df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]]=df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]].astype(float)
-    return df
-##########################
-def df_to_pdb(df, outFile):
-    with open(outFile,"w") as f:
-        for _, row in df.iterrows():
-            pdbLine = f"{row['ATOM']:<6}"
-            pdbLine += f"{row['ATOM_ID']:>5}{' '*2}"
-            pdbLine += f"{row['ATOM_NAME']:<4}"
-            pdbLine += f"{row['RES_NAME']:<4}"
-            pdbLine += f"{row['CHAIN_ID']:<1}{' '*1}"
-            pdbLine += f"{row['RES_ID']:<7}"
-            pdbLine += f"{row['X']:>8.3f}"
-            pdbLine += f"{row['Y']:>8.3f}"
-            pdbLine += f"{row['Z']:>8.3f}"
-            pdbLine += f"{row['OCCUPANCY']:>6.2f}"
-            pdbLine += f"{row['BETAFACTOR']:>6.2f}"
-            pdbLine += "\n"
-            #pdbLine += f"{row['ELEMENT']:>12}\n"
-            f.write(pdbLine)
