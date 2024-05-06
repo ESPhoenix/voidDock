@@ -18,63 +18,59 @@ conda create -n voidDock37 python=3.7
 conda activate voidDock37
 ```
 
-## Step 2: Install MGLTools
+## Step 2: Install Python3 Libraries
 
-Download MGLTools from [here](https://ccsb.scripps.edu/mgltools/downloads/).
-
-```bash
-cd /home/{username}/bin
-tar -xvzf mgltools_Linux-x86_64_1.5.7.tar.gz
-cd mgltools_Linux-x86_64_1.5.7
-chmod +x install.sh
-./install.sh
-```
-## Step 3: Deal with python2 requirements for MGLTools:
-Add python2.7 to your PATH in your .bashrc (or .bash_proifle)
-```bash
-## add to .bashrc
-export PATH="$PATH:/usr/bin/python2.7"
-## source
-source ~/.bashrc
-```
-Install Numpy for Python 2:
+Install required Python libraries:
 
 ```bash
-curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
-python2.7 get-pip.py
-python2.7 -m pip install numpy
-```
-## Step 4: Install Python3 Libraries
-
-Install required Python3 libraries using pip and conda:
-
-```bash
-pip3 install pytest-shutil
-pip3 install pandas
-conda config --add channels conda-forge
-conda install fpocket
-pip3 install argpass
-pip3 install tqdm
-pip3 install vina
+pip install -r requirements.txt
 ```
 
-## Step 5: Create Config File
+## Step 3: Create Config File
 
-Create a YAML script for the configuration file, e.g., `config.yaml`. Fill in the required paths:
-```
+Create a YAML script for the configuration file, e.g., `config.yaml`. Fill in the required paths and information:
+```yaml
+#### protDir    : path to directory containing proten (receptor) pdb files
+#### ligandDir  : path to directory containing ligand pdb files  
+#### outputDir  : path of desired output directory (does not need to exist yet)
+#### 
 dockingTargetsInfo: 
   protDir: "/home/{username}/voidDock/receptors"
   ligandDir: "/home/{username}/voidDock/ligands"
   outDir: "/home/{username}/voidDock/outputs"
-  ligandOrdersCsv: "/home/{username}/voidDock/docking_commands.csv"
-toolInfo:
-  mglToolsDir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs"
-  util24Dir: "/home/{username}/bin/mgltools_x86_64Linux2_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24"
+
+#### totalCpuUsage  :   number of cpu cores the whole script will use
+#### cpusPerRun     :   number of cpu cores each vina process will use
+#### total vina processes at a time will be:
+#### totalCpuUsage // cpusPerRun
+####
+cpuInfo:
+  totalCpuUsage: 8
+  cpusPerRun: 2
+
+#### list of dictionaries containing docking information for individual docking runs
+#### each dictionary contains:
+#### protein  :   protein name (this is the pdb file name)
+#### ligand   :   ligand name (this is the pdb file name)
+#### pocketResidues :   list of residues that will help identify the binding pocket in the format "CHAIN_ID:RES_NAME:RES_ID"
+####
+dockingOrders:
+  - protein: "134189607" 
+    ligand: "Lumoflavin"
+    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
+  - protein: "134189607"  
+    ligand: "FAD"
+    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
+  - protein: "62562582"
+    ligand: "Lumoflavin"
+    pocketResidues: ["A:ASN:60", "A:LYS:78", "A:ALA:77", "A:ILE:62"]
 ```
 
-**Note:** Replace `{username}` and update file paths accordingly in the above commands. Make sure to adjust permissions and paths based on your system configuration. Do not change the structure of the file, aka 'dockingTargetsInfo' and 'toolINfo' is needed.
+**Note:** Replace `{username}` and update file paths accordingly in the above commands.
+Replace all other information with your desired inputs.
+Make sure to adjust permissions and paths based on your system configuration. Do not change the structure of the file, aka 'dockingTargetsInfo' 
 
-## Step 6: Run voidDock
+## Step 4: Run voidDock
 Run the voidDock script with the provided configuration file:
 
 ```bash

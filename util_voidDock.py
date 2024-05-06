@@ -1,15 +1,12 @@
 
 ## import basic libraries
-from itertools import chain
 import os
 import subprocess
 from subprocess import call
 import os.path as p
 from shutil import copy, move
 import pandas as pd
-import json
 import ampal 
-import isambard.specifications as specifications 
 import isambard.modelling as modelling
 import yaml
 

@@ -7,7 +7,6 @@ dockingTargetsInfo:
   protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
   ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
   outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
-  dockingOrdersYaml: "/home/esp/scriptDevelopment/voidDock/dockingOrders.yaml"
 
 cpuInfo:
   totalCpuUsage: 8
