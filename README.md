@@ -27,15 +27,21 @@ conda activate voidDock37
 Install required Python libraries:
 
 ```bash
-pip install -r requirements.txt
-
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda install openbabel
 conda install fpocket
-conda install vina
-
-
+conda install vina  
+### if this fails use: conda install conda-forge::vina
+### if this fails, use sudo apt-get install autodock-vina
+pip install pandas
+pip install numpy
+pip install pyyaml
+pip install argpass
+pip install cython      ## must install cython before Ampal and Isambard!
+pip install ampal
+pip install isambard
+pip install pdbutils
 ```
 
 ## Step 4: Create Config File
