@@ -3,22 +3,22 @@
 # ligandDir - directory containing the ligand(s)
 # outDir - location to save output to
 
-dockingTargetsInfo: 
-  protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
-  ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
-  outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
+dockingTargetsInfo:
+    protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
+    ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
+    outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
 
 cpuInfo:
-  totalCpuUsage: 8
-  cpusPerRun: 2
+    totalCpuUsage: 8
+    cpusPerRun: 2
 
 dockingOrders:
-  - protein: "134189607" 
+    - protein: "134189607"
     ligand: "Lumoflavin"
     pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
-  - protein: "134189607"  
+    - protein: "134189607"
     ligand: "FAD"
     pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
-  - protein: "62562582"
+    - protein: "62562582"
     ligand: "Lumoflavin"
     pocketResidues: ["A:ASN:60", "A:LYS:78", "A:ALA:77", "A:ILE:62"]
