@@ -68,20 +68,43 @@ cpuInfo:
 
 # list of dictionaries containing docking information for individual docking runs
 # each dictionary contains:
-# protein  :   protein name (this is the pdb file name without extension)
-# ligands   :   list of ligand names (these are the pdb file names without extensions)
-# pocketResidues :   list of residues that will help identify the binding pocket in the format "CHAIN_ID:RES_NAME:RES_ID"
+# protein           :   protein name (this is the pdb file name without extension)
+# ligands           :   list of ligand names (these are the pdb file names without extensions)
+# pocketResidues    :   list of residues that will help identify the binding pocket
+#                       each residue is a dict containing CHAIN_ID:{str}, RES_NAME:{str}, RES_ID:{int}
+# keepResidues      :   list of residues that must be conserved (this could be important for catalysis/binding)
+#                       each residue is a dict containing CHAIN_ID:{str}, RES_NAME:{str}, RES_ID:{int}
 ####
 dockingOrders:
-    - protein: "134189607"
-    ligands: ["Lumoflavin"]
-    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
-    - protein: "134189607"
-    ligands: ["FAD","TPA]
-    pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
-    - protein: "62562582"
-    ligands: ["Lumoflavin"]
-    pocketResidues: ["A:ASN:60", "A:LYS:78", "A:ALA:77", "A:ILE:62"]
+  - protein: "A0A0D2XFD3"
+    ligands: ["FFF", "TPA"]
+    pocketResidues: 
+      - CHAIN_ID: "A"
+        RES_NAME: "PHE"
+        RES_ID: 216
+      - CHAIN_ID: "A"
+        RES_NAME: "ARG"
+        RES_ID: 217
+      - CHAIN_ID: "A"
+        RES_NAME: "TRP"
+        RES_ID: 213
+      - CHAIN_ID: "A"
+        RES_NAME: "SER"
+        RES_ID: 214
+        
+    keepResidues: 
+      - CHAIN_ID: "A"
+        RES_NAME: "PHE"
+        RES_ID: 216
+      - CHAIN_ID: "A"
+        RES_NAME: "ARG"
+        RES_ID: 217
+      - CHAIN_ID: "A"
+        RES_NAME: "TRP"
+        RES_ID: 213
+      - CHAIN_ID: "A"
+        RES_NAME: "SER"
+        RES_ID: 214
 ```
 
 **Note: ** Replace `{username}` and update file paths accordingly in the above commands.

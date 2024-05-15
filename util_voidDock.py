@@ -298,9 +298,6 @@ def set_up_directory(outDir, pathInfo,  dockingOrder):
     copy(protPdb,protPdbDest)
     protPdb = protPdbDest
 
-    # for ligPdbqt in ligPdbqts:
-    #     copy(ligPdbqt, runDir)
-
     
     return protName, protPdb, ligPdbqts, runDir
 ##########################################################################
