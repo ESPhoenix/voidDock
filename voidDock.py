@@ -30,58 +30,63 @@ def read_inputs():
 def main(configFile):
     # read config file
     config = read_inputs()
-    protDir = config["dockingTargetsInfo"]["protDir"]
-    ligandDir = config["dockingTargetsInfo"]["ligandDir"]
-    outDir = config["dockingTargetsInfo"]["outDir"]
-
-    cpuInfo = config["cpuInfo"]
-
+    outDir = config["pathInfo"]["outDir"]
+    ligandDir = config["pathInfo"]["ligandDir"]
     dockingOrders = config["dockingOrders"]
+
+    # pre-prepare ligand pdbqt files
+    print("making ligand pdbqt files")
+    gen_ligand_pdbqts(dockingOrders, ligandDir)
     # make outDir
     os.makedirs(outDir, exist_ok=True)
 
-    if cpuInfo["totalCpuUsage"] == 1:
-        run_serial(protDir, ligandDir, outDir, cpuInfo, dockingOrders)
-    elif cpuInfo["totalCpuUsage"] > 1:
-        run_parallel(protDir, ligandDir, outDir, cpuInfo, dockingOrders)
+    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
+    parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
+
+
+    collate_docked_pdbs(outDir)
+    exit()
+
+    if parallelCpus == 1:
+        run_serial(config, dockingOrders)
+    elif parallelCpus > 1:
+        run_parallel(config, dockingOrders)
 
     collate_docked_pdbs(outDir)
 ##########################################################################
 
 
-def run_parallel(protDir, ligandDir, outDir, cpuInfo, dockingOrders):
-    cpusPerRun = cpuInfo["cpusPerRun"]
-    parallelCpus = cpuInfo["totalCpuUsage"] // cpusPerRun
+def run_parallel(config, dockingOrders):
+    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
+    parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
     with mp.Pool(processes=parallelCpus) as pool:
         try:
             pool.starmap(docking_protocol,
-                         [(protDir,
-                           ligandDir,
-                           outDir,
-                           cpusPerRun,
-                           dockingOrder) for dockingOrder in dockingOrders])
+                         [(config,dockingOrder) for dockingOrder in dockingOrders])
         except Exception as e:
             print(f"ERROR: {e}")
 ##########################################################################
 
 
-def run_serial(protDir, ligandDir, outDir, cpuInfo, dockingOrders):
-    cpusPerRun = cpuInfo["cpusPerRun"]
+def run_serial(config, dockingOrders):
     for dockingOrder in dockingOrders:
-        docking_protocol(protDir, ligandDir, outDir, cpusPerRun, dockingOrder)
+        docking_protocol(config,dockingOrder)
 
 
 ##########################################################################
-def docking_protocol(protDir, ligandDir, outDir, cpusPerRun, dockingOrder):
-    # read order for this docking run from dockingOrder
-    protName = dockingOrder["protein"]
-    ligandName = dockingOrder["ligand"]
+def docking_protocol(config, dockingOrder):
+    ## read config
+    pathInfo = config["pathInfo"]
+    outDir = pathInfo["outDir"]
+    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
+ 
 
     # set up run directory and output key variables
-    protPdb, ligandPdb, runDir = set_up_directory(protDir=protDir, protName=protName,
-                                                  ligandDir=ligandDir, ligandName=ligandName,
-                                                  outDir=outDir)
+    protName, protPdb, ligPdbqts, runDir = set_up_directory(outDir = outDir,
+                                                             pathInfo = pathInfo,
+                                                                 dockingOrder = dockingOrder)
+    
     # Use fpocket to identify correct pocket, calclate box center and return
     # residues in pocket
     targetPocketResidues = dockingOrder["pocketResidues"]
@@ -98,23 +103,19 @@ def docking_protocol(protDir, ligandDir, outDir, cpusPerRun, dockingOrder):
     alaPdbtq = pdb_to_pdbqt(inPdb=alaPdb,
                             outDir=runDir,
                             jobType="rigid")
-    # Convert ligand PDB to PDBQT
-    ligandPdbqt = pdb_to_pdbqt(inPdb=ligandPdb,
-                               outDir=runDir,
-                               jobType="ligand")
+
     # Write a config file for vina
     vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
                                                 receptorPdbqt=alaPdbtq,
-                                                ligandPdbqt=ligandPdbqt,
                                                 boxCenter=boxCenter,
                                                 boxSize=30,
                                                 cpus=cpusPerRun)
     # Run vina docking
     run_vina(outDir=runDir,
-             configFile=vinaConfig)
+             configFile=vinaConfig, 
+             ligPdbqts = ligPdbqts)
     # split docking results PDBQT file into separate PDB files
-    process_vina_results(protName=protName,
-                         ligandName=ligandName,
+    process_vina_results(dockingOrder = dockingOrder,
                          outDir=runDir,
                          receptorPdbqt=alaPdbtq,
                          dockedPdbqt=dockedPdbqt)

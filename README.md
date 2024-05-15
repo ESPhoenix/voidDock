@@ -9,7 +9,7 @@ Docking Protocol:
 # voidDock Installation
 # Step 1: Clone this repository
 ```bash
-git clone https: // github.com / ESPhoenix / voidDock
+git clone https://github.com/ESPhoenix/voidDock
 ```
 
 # Step 2: Create Python Environment
@@ -17,7 +17,7 @@ git clone https: // github.com / ESPhoenix / voidDock
 Create a Python environment using Conda:
 ```bash
 # Create env
-conda create - n voidDock37 python = 3.7
+conda create -n voidDock37 python=3.7
 # Activate env
 conda activate voidDock37
 ```
@@ -27,8 +27,8 @@ conda activate voidDock37
 Install required Python libraries:
 
 ```bash
-conda config - -add channels conda - forge
-conda config - -set channel_priority strict
+conda config --add channels conda - forge
+conda config --set channel_priority strict
 conda install openbabel
 conda install fpocket
 conda install vina
@@ -68,19 +68,19 @@ cpuInfo:
 
 # list of dictionaries containing docking information for individual docking runs
 # each dictionary contains:
-# protein  :   protein name (this is the pdb file name)
-# ligand   :   ligand name (this is the pdb file name)
+# protein  :   protein name (this is the pdb file name without extension)
+# ligands   :   list of ligand names (these are the pdb file names without extensions)
 # pocketResidues :   list of residues that will help identify the binding pocket in the format "CHAIN_ID:RES_NAME:RES_ID"
 ####
 dockingOrders:
     - protein: "134189607"
-    ligand: "Lumoflavin"
+    ligands: ["Lumoflavin"]
     pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
     - protein: "134189607"
-    ligand: "FAD"
+    ligands: ["FAD","TPA]
     pocketResidues: ["A:GLY:371", "A:ALA:854", "A:ALA:584", "A:GLY:171"]
     - protein: "62562582"
-    ligand: "Lumoflavin"
+    ligands: ["Lumoflavin"]
     pocketResidues: ["A:ASN:60", "A:LYS:78", "A:ALA:77", "A:ILE:62"]
 ```
 

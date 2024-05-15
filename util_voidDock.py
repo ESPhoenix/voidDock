@@ -2,7 +2,7 @@
 # import basic libraries
 import os
 import subprocess
-from subprocess import call
+from subprocess import call, run
 import os.path as p
 from shutil import copy, move, rmtree
 import pandas as pd
@@ -12,16 +12,32 @@ import yaml
 
 from pdbUtils import pdbUtils
 ##########################################################################
+def gen_ligand_pdbqts(dockingOrders, ligandDir):
+    allLigands = []
+    for dockingOrder in dockingOrders:
+
+        ligands = dockingOrder["ligands"]
+        for ligand in ligands:
+            allLigands.append(ligand)
+
+    allLigands = list(set(allLigands))
+    for ligand in allLigands:
+        ligPdb = p.join(ligandDir, f"{ligand}.pdb")
+        if not p.isfile(ligPdb):
+            print(f"{ligPdb} not found, skipping...")
+            continue
+        pdb_to_pdbqt(ligPdb, ligandDir, jobType="ligand")
+##########################################################################
 
 
 def collate_docked_pdbs(outDir, rmDirs=True):
     collateDir = p.join(outDir, "collated_docked_pdbs")
     os.makedirs(collateDir, exist_ok=True)
     for dir in os.listdir(outDir):
-        dir = p.join(dir, outDir)
         if dir == collateDir:
             continue
-        finalDockedPdbDir = p.join(dir, "final_docked_pdbs")
+        runDir = p.join(outDir, dir)
+        finalDockedPdbDir = p.join(runDir, "final_docked_pdbs")
         if not p.isdir(finalDockedPdbDir):
             continue
         for file in os.listdir(finalDockedPdbDir):
@@ -31,23 +47,25 @@ def collate_docked_pdbs(outDir, rmDirs=True):
             pdbDest = p.join(collateDir, file)
             copy(pdbFile, pdbDest)
         if rmDirs:
-            rmtree(dir)
+            rmtree(runDir)
 ##########################################################################
 
 
 def process_vina_results(
-        protName,
-        ligandName,
+        dockingOrder,
         outDir,
         dockedPdbqt,
         receptorPdbqt):
+    
+    protName = dockingOrder["protein"]
+    ligandNames = dockingOrder["ligands"]
     # read output pdbqt file into a list of dataframes
     dockingDfList = read_docking_results(dockedPdbqt)
     receptorDf = pdbUtils.pdbqt2df(receptorPdbqt)
 
     splice_docking_results(
         protName,
-        ligandName,
+        ligandNames,
         dockingDfList,
         receptorDf,
         outDir)
@@ -56,7 +74,7 @@ def process_vina_results(
 
 def splice_docking_results(
         protName,
-        ligandName,
+        ligandNames,
         dockingDfList,
         receptorDf,
         outDir):
@@ -93,9 +111,10 @@ def splice_docking_results(
         # re-do atom numbers
         wholeDf.loc[:, "ATOM_ID"] = range(1, len(wholeDf) + 1)
         # save as pdb file
+        ligandsTag = "_".join(ligandNames)
         saveFile = p.join(
             finalPdbDir,
-            f"{protName}_{ligandName}_{str(poseNumber)}.pdb")
+            f"{protName}_{ligandsTag}_{str(poseNumber)}.pdb")
         pdbUtils.df2pdb(df=wholeDf, outFile=saveFile)
 
 ##########################################################################
@@ -137,12 +156,11 @@ def read_docking_results(dockedPdbqt):
 
     return dockingDfList
 ##########################################################################
-
-
-def run_vina(outDir, configFile):
-    logFile = p.join(outDir, "vina_docking.log")
-    with open(logFile, "a") as logFile:
-        call(["vina", "--config", configFile], stdout=logFile)
+def run_vina(outDir,configFile, ligPdbqts):
+    logFile = p.join(outDir,"vina_docking.log")
+    ligands = " ".join(ligPdbqts)
+    with open(logFile,"a") as logFile:
+        run(f"vina --config {configFile} --ligand {ligands}", shell=True, stdout=logFile)
 ##########################################################################
 # writes a config file for a Vina docking simulation
 
@@ -150,7 +168,6 @@ def run_vina(outDir, configFile):
 def write_vina_config(
         outDir,
         receptorPdbqt,
-        ligandPdbqt,
         boxCenter,
         boxSize,
         flexPdbqt=None,
@@ -165,11 +182,9 @@ def write_vina_config(
     with open(vinaConfigFile, "w") as outFile:
         if not flex:
             outFile.write(f"receptor = {receptorPdbqt}\n")
-            outFile.write(f"ligand = {ligandPdbqt}\n\n")
         else:
             outFile.write(f"receptor = {receptorPdbqt}\n")
             outFile.write(f"flex = {flexPdbqt}\n\n")
-            outFile.write(f"ligand = {ligandPdbqt}\n\n")
 
         outFile.write(f"center_x = {str(boxCenter[0])}\n")
         outFile.write(f"center_y = {str(boxCenter[1])}\n")
@@ -228,6 +243,7 @@ def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, outDir):
     alaPdb = p.join(outDir, f"{protName}_pocketAla.pdb")
     with open(alaPdb, "w") as file:
         file.write(alaPdbString)
+    os.remove(tmpPdb)
     return alaPdb
 ##########################################################################
 
@@ -282,27 +298,40 @@ def pdb_to_pdbqt(inPdb, outDir, jobType):
 ##########################################################################
 
 
-def set_up_directory(protName, protDir, ligandName, ligandDir, outDir):
-    runDir = p.join(outDir, f"{protName}_{ligandName}")
-    os.makedirs(runDir, exist_ok=True)
+def set_up_directory(outDir, pathInfo,  dockingOrder):
+    # read protein pdb file, get name and make new dir for docking, copy over protein pdb
+    protName = dockingOrder["protein"]
+    ligands = dockingOrder["ligands"]
+    ligandDir = pathInfo["ligandDir"]
+    protDir = pathInfo["protDir"]
 
-    # copy protPdb to runDir
-    protPdb = p.join(protDir, f"{protName}.pdb")
-    if not p.isfile(protPdb):
-        print(f"Can't find pdb file:\n\t{protPdb}")
-        return
-    copy(protPdb, runDir)
-    protPdb = p.join(runDir, f"{protName}.pdb")
+    pocketTag = ""
+    if "pocketTag" in dockingOrder:
+        pocketTag = dockingOrder["pocketTag"]
 
-    # copy ligandPdb to runDir
-    ligandPdb = p.join(ligandDir, f"{ligandName}.pdb")
-    if not p.isfile(ligandPdb):
-        print(f"Can't find pdb file:\n\t{ligandPdb}")
-        return
-    copy(ligandPdb, runDir)
-    ligandPdb = p.join(runDir, f"{ligandName}.pdb")
+    protPdb = p.join(protDir,f"{protName}.pdb")
 
-    return protPdb, ligandPdb, runDir
+    # read ligand pdb and copy to new run directory
+    ligandNames = []
+    ligPdbqts = []
+    for ligandName in ligands:
+        ligandNames.append(ligandName)
+        ligPdbqt = p.join(ligandDir, f"{ligandName}.pdbqt")
+        ligPdbqts.append(ligPdbqt)
+
+    ligandTag = "_".join(ligandNames)
+    runDir = p.join(outDir,f"{protName}_{ligandTag}_{pocketTag}")
+    os.makedirs(runDir,exist_ok=True)
+    ## copy over protPdb, move location of var
+    protPdbDest = p.join(runDir, f"{protName}.pdb")
+    copy(protPdb,protPdbDest)
+    protPdb = protPdbDest
+
+    # for ligPdbqt in ligPdbqts:
+    #     copy(ligPdbqt, runDir)
+
+    
+    return protName, protPdb, ligPdbqts, runDir
 ##########################################################################
 
 
