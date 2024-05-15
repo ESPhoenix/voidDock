@@ -44,14 +44,10 @@ def main(configFile):
     parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
 
-    collate_docked_pdbs(outDir)
-    exit()
-
     if parallelCpus == 1:
         run_serial(config, dockingOrders)
     elif parallelCpus > 1:
         run_parallel(config, dockingOrders)
-
     collate_docked_pdbs(outDir)
 ##########################################################################
 
@@ -80,7 +76,7 @@ def docking_protocol(config, dockingOrder):
     pathInfo = config["pathInfo"]
     outDir = pathInfo["outDir"]
     cpusPerRun = config["cpuInfo"]["cpusPerRun"]
- 
+
 
     # set up run directory and output key variables
     protName, protPdb, ligPdbqts, runDir = set_up_directory(outDir = outDir,
@@ -103,6 +99,7 @@ def docking_protocol(config, dockingOrder):
     alaPdbtq = pdb_to_pdbqt(inPdb=alaPdb,
                             outDir=runDir,
                             jobType="rigid")
+    
 
     # Write a config file for vina
     vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
@@ -117,7 +114,7 @@ def docking_protocol(config, dockingOrder):
     # split docking results PDBQT file into separate PDB files
     process_vina_results(dockingOrder = dockingOrder,
                          outDir=runDir,
-                         receptorPdbqt=alaPdbtq,
+                         receptorPdb=alaPdb,
                          dockedPdbqt=dockedPdbqt)
 
 

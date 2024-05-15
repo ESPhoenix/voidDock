@@ -9,8 +9,8 @@ pathInfo:
   outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
 
 cpuInfo:
-  totalCpuUsage: 8
-  cpusPerRun: 8
+  totalCpuUsage: 16
+  cpusPerRun: 16
 
 dockingOrders:
   - protein: "A0A0D2XFD3"

@@ -55,67 +55,36 @@ def process_vina_results(
         dockingOrder,
         outDir,
         dockedPdbqt,
-        receptorPdbqt):
+        receptorPdb):
     
     protName = dockingOrder["protein"]
     ligandNames = dockingOrder["ligands"]
-    # read output pdbqt file into a list of dataframes
-    dockingDfList = read_docking_results(dockedPdbqt)
-    receptorDf = pdbUtils.pdbqt2df(receptorPdbqt)
+    ## use OBabel to split up dockedPdbt into multiple pose pdbqts
+    obabelCommand = [
+            "obabel", dockedPdbqt,
+            "-O","pose.pdb",
+              "-m"]
+    call(obabelCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    splice_docking_results(
-        protName,
-        ligandNames,
-        dockingDfList,
-        receptorDf,
-        outDir)
-##########################################################################
-
-
-def splice_docking_results(
-        protName,
-        ligandNames,
-        dockingDfList,
-        receptorDf,
-        outDir):
+    ## make a dir to put all of the docked complexes
     finalPdbDir = p.join(outDir, "final_docked_pdbs")
-    os.makedirs(finalPdbDir, exist_ok=True)
-    # loop over each pose in dockingDfList
-    for poseNumber, dockedDf in zip(
-            range(1, len(dockingDfList) + 1), dockingDfList):
-        # find  max chain ID in receptor, set ligand to one more than that
-        lastChainIdInProt = receptorDf.iloc[-1]["CHAIN_ID"]
-        ligandChainId = chr(
-            (ord(lastChainIdInProt) - ord('A') + 1) %
-            26 + ord('A'))
-        dockedDf.loc[dockedDf["RES_ID"] == 0, "CHAIN_ID"] = ligandChainId
-        # Set ligand residue number to 1
-        ligandResidueId = 1
-        dockedDf.loc[dockedDf["RES_ID"] == 0, "RES_ID"] = ligandResidueId
-        # chage HETATM to ATOM for dockedDf
-        dockedDf.loc[:, "ATOM"] = "ATOM"
-        # Concat docked and rigid DFs togeter - this is in a weird order
-        wholeDisorderedDf = pd.concat([dockedDf, receptorDf], axis=0)
-        # get a list of unique residue Ids
-        uniqueResidues = sorted(
-            pd.unique(
-                wholeDisorderedDf["RES_ID"]).tolist())
-        # get one df per residue
-        orderedResidues = []
-        for residueNum in uniqueResidues:
-            residueDf = wholeDisorderedDf[wholeDisorderedDf["RES_ID"]
-                                          == residueNum]
-            orderedResidues.append(residueDf)
-        # concat into correct order
-        wholeDf = pd.concat(orderedResidues)
-        # re-do atom numbers
-        wholeDf.loc[:, "ATOM_ID"] = range(1, len(wholeDf) + 1)
-        # save as pdb file
-        ligandsTag = "_".join(ligandNames)
-        saveFile = p.join(
-            finalPdbDir,
-            f"{protName}_{ligandsTag}_{str(poseNumber)}.pdb")
-        pdbUtils.df2pdb(df=wholeDf, outFile=saveFile)
+    os.makedirs(finalPdbDir,exist_ok=True)
+
+    ligandsTag = "_".join(ligandNames) 
+    protDf = pdbUtils.pdb2df(receptorPdb)
+    for file in os.listdir(outDir):
+        if not p.splitext(file)[1] == ".pdb":
+            continue
+        if not file.startswith("pose"):
+            continue
+        ## extract pose number from file name
+        poseNumber = "".join([char for char in p.splitext(file)[0] if char.isdigit()])
+        ## load posePdb and protPdb as dataframes, concat and write back to pdb file
+        posePdb = p.join(outDir,file)
+        poseDf = pdbUtils.pdb2df(posePdb)
+        complexDf = pd.concat([protDf,poseDf])
+        complexPdb = p.join(finalPdbDir,f"{protName}_{ligandsTag}_{poseNumber}.pdb")
+        pdbUtils.df2pdb(complexDf, complexPdb)
 
 ##########################################################################
 
