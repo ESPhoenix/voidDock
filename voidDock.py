@@ -35,7 +35,6 @@ def main(configFile):
     dockingOrders = config["dockingOrders"]
 
     # pre-prepare ligand pdbqt files
-    print("making ligand pdbqt files")
     gen_ligand_pdbqts(dockingOrders, ligandDir)
     # make outDir
     os.makedirs(outDir, exist_ok=True)

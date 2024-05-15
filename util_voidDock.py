@@ -31,11 +31,8 @@ def gen_ligand_pdbqts(dockingOrders, ligandDir):
 
 
 def collate_docked_pdbs(outDir, rmDirs=True):
-    collateDir = p.join(outDir, "collated_docked_pdbs")
-    os.makedirs(collateDir, exist_ok=True)
     for dir in os.listdir(outDir):
-        if dir == collateDir:
-            continue
+
         runDir = p.join(outDir, dir)
         finalDockedPdbDir = p.join(runDir, "final_docked_pdbs")
         if not p.isdir(finalDockedPdbDir):
@@ -44,8 +41,14 @@ def collate_docked_pdbs(outDir, rmDirs=True):
             if not p.splitext(file)[1] == ".pdb":
                 continue
             pdbFile = p.join(finalDockedPdbDir, file)
-            pdbDest = p.join(collateDir, file)
+            pdbDest = p.join(outDir, file)
             copy(pdbFile, pdbDest)
+        for file in os.listdir(runDir):
+            if file.endswith("_pocket_residues.yaml"):
+                pocketResiduesYaml = p.join(runDir, file)
+                pocketResiduesDest = p.join(outDir,file)
+                copy(pocketResiduesYaml, pocketResiduesDest)
+
         if rmDirs:
             rmtree(runDir)
 ##########################################################################
@@ -86,10 +89,6 @@ def process_vina_results(
         complexPdb = p.join(finalPdbDir,f"{protName}_{ligandsTag}_{poseNumber}.pdb")
         pdbUtils.df2pdb(complexDf, complexPdb)
 
-##########################################################################
-
-
-def read_docking_results(dockedPdbqt):
     # remove ROOT/BRANCH
     pdbqtColumns = ["ATOM", "ATOM_ID", "ATOM_NAME", "RES_NAME",
                     "CHAIN_ID", "RES_ID", "X", "Y", "Z", "OCCUPANCY",
