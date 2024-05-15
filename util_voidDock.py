@@ -179,8 +179,11 @@ def write_vina_config(
 
 
 ##########################################################################
-def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, outDir):
-    residuesToAlanine = [residue for residue in residuesToAlanine]
+def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, dockingOrder, outDir):
+    keepResidues = dockingOrder["keepResidues"]
+
+    ## remove residues in keepResidues, these will not be changed to Alanine
+    residuesToAlanine = [residue for residue in residuesToAlanine if not residue in keepResidues]
 
     protDf = pdbUtils.pdb2df(pdbFile)
 
@@ -301,8 +304,6 @@ def set_up_directory(outDir, pathInfo,  dockingOrder):
     
     return protName, protPdb, ligPdbqts, runDir
 ##########################################################################
-
-
 def directed_fpocket(protName, runDir, pdbFile, targetPocketResidues):
     # print("----->\tRunning Fpocket!")
     os.chdir(runDir)
@@ -322,12 +323,10 @@ def directed_fpocket(protName, runDir, pdbFile, targetPocketResidues):
         pocketPdb = p.join(fpocketOutDir, file)
         pocketDf = pdbUtils.pdb2df(pocketPdb)
         for targetRes in targetPocketResidues:
-            resData = targetRes.split(":")
-            targetChain = resData[0]
-            targetResId = int(resData[2])
 
-            targetDf = pocketDf[(pocketDf["CHAIN_ID"] == targetChain) &
-                                (pocketDf["RES_ID"] == targetResId)]
+            targetDf = pocketDf[(pocketDf["CHAIN_ID"] == targetRes["CHAIN_ID"]) 
+                                & (pocketDf["RES_NAME"] == targetRes["RES_NAME"])
+                                & (pocketDf["RES_ID"] == targetRes["RES_ID"])]
             if len(targetDf) > 0:
                 targetResidueCount += 1
         pocketId = fileData[0].split("_")[0]

@@ -89,11 +89,14 @@ def docking_protocol(config, dockingOrder):
                                                  runDir=runDir,
                                                  pdbFile=protPdb,
                                                  targetPocketResidues=targetPocketResidues)
+   
     # Replace pocket residues with alanine
     alaPdb = pocket_residues_to_alainine(protName=protName,
                                          pdbFile=protPdb,
                                          residuesToAlanine=pocketResidues,
+                                         dockingOrder = dockingOrder,
                                          outDir=runDir)
+    
     # Convert alanine PDB to PDBQT
     alaPdbtq = pdb_to_pdbqt(inPdb=alaPdb,
                             outDir=runDir,

@@ -15,4 +15,29 @@ cpuInfo:
 dockingOrders:
   - protein: "A0A0D2XFD3"
     ligands: ["FFF", "TPA"]
-    pocketResidues: ["A:ALA:268", "A:SER:367", "A:GLY:233", "A:GLY:171"]
+    pocketResidues: 
+      - CHAIN_ID: "A"
+        RES_NAME: "PHE"
+        RES_ID: 216
+      - CHAIN_ID: "A"
+        RES_NAME: "ARG"
+        RES_ID: 217
+      - CHAIN_ID: "A"
+        RES_NAME: "TRP"
+        RES_ID: 213
+      - CHAIN_ID: "A"
+        RES_NAME: "SER"
+        RES_ID: 214
+    keepResidues: 
+      - CHAIN_ID: "A"
+        RES_NAME: "PHE"
+        RES_ID: 216
+      - CHAIN_ID: "A"
+        RES_NAME: "ARG"
+        RES_ID: 217
+      - CHAIN_ID: "A"
+        RES_NAME: "TRP"
+        RES_ID: 213
+      - CHAIN_ID: "A"
+        RES_NAME: "SER"
+        RES_ID: 214
