@@ -17,9 +17,9 @@ git clone https://github.com/ESPhoenix/voidDock
 Create a Python environment using Conda:
 ```bash
 # Create env
-conda create -n voidDock37 python=3.7
+conda create -n voidDock38 python=3.8
 # Activate env
-conda activate voidDock37
+conda activate voidDock38
 ```
 
 # Step 3: Install Python3 Libraries
@@ -52,7 +52,7 @@ Create a YAML script for the configuration file, e.g., `config.yaml`. Fill in th
 # ligandDir  : path to directory containing ligand pdb files
 # outputDir  : path of desired output directory (does not need to exist yet)
 ####
-dockingTargetsInfo:
+pathInfo:
     protDir: "/home/{username}/voidDock/receptors"
     ligandDir: "/home/{username}/voidDock/ligands"
     outDir: "/home/{username}/voidDock/outputs"

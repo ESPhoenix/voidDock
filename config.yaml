@@ -28,6 +28,7 @@ dockingOrders:
       - CHAIN_ID: "A"
         RES_NAME: "SER"
         RES_ID: 214
+        
     keepResidues: 
       - CHAIN_ID: "A"
         RES_NAME: "PHE"
