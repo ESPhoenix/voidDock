@@ -1,0 +1,26 @@
+REMARK  Name = /home/esp/scriptDevelopment/voidDock/ligands/TPA2.pdb
+REMARK  2 active torsions:
+REMARK  status: ('A' for Active; 'I' for Inactive)
+REMARK    1  A    between atoms: C1_5  and  C7_11
+REMARK    2  A    between atoms: C2_6  and  C8_12
+REMARK                            x       y       z     vdW  Elec       q    Type
+REMARK                         _______ _______ _______ _____ _____    ______ ____
+ROOT
+ATOM      1  C1  TPA L   1      31.494 -35.721  18.059  0.00  0.00    +0.000 A 
+ATOM      2  C2  TPA L   1      31.584 -37.891  19.929  0.00  0.00    +0.000 A 
+ATOM      3  C3  TPA L   1      31.461 -37.059  17.614  0.00  0.00    +0.000 A 
+ATOM      4  C4  TPA L   1      31.518 -38.123  18.533  0.00  0.00    +0.000 A 
+ATOM      5  C5  TPA L   1      31.609 -35.480  19.450  0.00  0.00    +0.000 A 
+ATOM      6  C6  TPA L   1      31.652 -36.553  20.375  0.00  0.00    +0.000 A 
+ENDROOT
+BRANCH   1   9
+ATOM      7  O1  TPA L   1      31.552 -33.410  17.437  0.00  0.00    +0.000 OA
+ATOM      8  O3  TPA L   1      31.144 -34.868  15.860  0.00  0.00    +0.000 OA
+ATOM      9  C7  TPA L   1      31.391 -34.594  17.059  0.00  0.00    +0.000 C 
+ENDBRANCH   1   9
+BRANCH   2  12
+ATOM     10  O2  TPA L   1      31.542 -38.987  22.122  0.00  0.00    +0.000 OA
+ATOM     11  O4  TPA L   1      31.475 -40.188  20.338  0.00  0.00    +0.000 OA
+ATOM     12  C8  TPA L   1      31.543 -39.075  20.873  0.00  0.00    +0.000 C 
+ENDBRANCH   2  12
+TORSDOF 2

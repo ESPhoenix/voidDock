@@ -14,7 +14,7 @@ cpuInfo:
 
 dockingOrders:
   - protein: "A0A0D2XFD3"
-    ligands: ["FFF", "TPA"]
+    ligands: ["TPA","TPA2"]
     pocketResidues: 
       - CHAIN_ID: "A"
         RES_NAME: "PHE"
@@ -28,7 +28,6 @@ dockingOrders:
       - CHAIN_ID: "A"
         RES_NAME: "SER"
         RES_ID: 214
-        
     keepResidues: 
       - CHAIN_ID: "A"
         RES_NAME: "PHE"

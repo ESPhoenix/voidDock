@@ -47,7 +47,7 @@ def main(configFile):
         run_serial(config, dockingOrders)
     elif parallelCpus > 1:
         run_parallel(config, dockingOrders)
-    collate_docked_pdbs(outDir)
+    # collate_docked_pdbs(outDir) ##TODO UNHASH!
 ##########################################################################
 
 
@@ -113,6 +113,7 @@ def docking_protocol(config, dockingOrder):
     run_vina(outDir=runDir,
              configFile=vinaConfig, 
              ligPdbqts = ligPdbqts)
+    
     # split docking results PDBQT file into separate PDB files
     process_vina_results(dockingOrder = dockingOrder,
                          outDir=runDir,

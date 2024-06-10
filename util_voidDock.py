@@ -88,41 +88,6 @@ def process_vina_results(
         complexDf = pd.concat([protDf,poseDf])
         complexPdb = p.join(finalPdbDir,f"{protName}_{ligandsTag}_{poseNumber}.pdb")
         pdbUtils.df2pdb(complexDf, complexPdb)
-
-    # remove ROOT/BRANCH
-    pdbqtColumns = ["ATOM", "ATOM_ID", "ATOM_NAME", "RES_NAME",
-                    "CHAIN_ID", "RES_ID", "X", "Y", "Z", "OCCUPANCY",
-                    "BETAFACTOR", "CHARGE", "ELEMENT"]
-    columsNums = [(0, 6), (6, 11), (11, 17), (17, 21), (21, 22), (22, 26),
-                  (26, 38), (38, 46), (46, 54), (54, 60), (60, 70), (70, 77), (77, 79)]
-    # read pdbqt file into multiple dataframes
-    dockingDfList = []
-    data = []
-    # read output PDBQT file into set of dataframes
-    with open(dockedPdbqt, 'r') as file:
-        for line in file:
-            if line.startswith(
-                    "MODEL"):        # Each binding pose starts with "MODEL"
-                if data == []:                  # skip 1st "MODEL"
-                    continue
-                df = pd.DataFrame(data, columns=pdbqtColumns)
-                df[["ATOM_ID", "RES_ID"]] = df[[
-                    "ATOM_ID", "RES_ID"]].astype(int)
-                df[["X", "Y", "Z", "OCCUPANCY", "BETAFACTOR"]] = df[[
-                    "X", "Y", "Z", "OCCUPANCY", "BETAFACTOR"]].astype(float)
-                dockingDfList.append(df)
-                data = []
-            elif line.startswith("ATOM") or line.startswith("HETATM"):
-                record = [line[start:end].strip() for start, end in columsNums]
-                data.append(record)
-    # deal with last entry in pdbqtfile
-    df = pd.DataFrame(data, columns=pdbqtColumns)
-    df[["ATOM_ID", "RES_ID"]] = df[["ATOM_ID", "RES_ID"]].astype(int)
-    df[["X", "Y", "Z", "OCCUPANCY", "BETAFACTOR"]] = df[[
-        "X", "Y", "Z", "OCCUPANCY", "BETAFACTOR"]].astype(float)
-    dockingDfList.append(df)
-
-    return dockingDfList
 ##########################################################################
 def run_vina(outDir,configFile, ligPdbqts):
     logFile = p.join(outDir,"vina_docking.log")
