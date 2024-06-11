@@ -13,31 +13,20 @@ cpuInfo:
   cpusPerRun: 16
 
 dockingOrders:
-  - protein: "A0A0D2XFD3"
-    ligands: ["TPA","TPA2"]
+  - protein: "lmr_heme_round_2"
+    ligands: ["TPA"]
     pocketResidues: 
       - CHAIN_ID: "A"
+        RES_NAME: "GLN"
+        RES_ID: 13
+      - CHAIN_ID: "A"
         RES_NAME: "PHE"
-        RES_ID: 216
+        RES_ID: 203
       - CHAIN_ID: "A"
-        RES_NAME: "ARG"
-        RES_ID: 217
-      - CHAIN_ID: "A"
-        RES_NAME: "TRP"
-        RES_ID: 213
-      - CHAIN_ID: "A"
-        RES_NAME: "SER"
-        RES_ID: 214
+        RES_NAME: "ASN"
+        RES_ID: 124
+
     keepResidues: 
       - CHAIN_ID: "A"
-        RES_NAME: "PHE"
-        RES_ID: 216
-      - CHAIN_ID: "A"
-        RES_NAME: "ARG"
-        RES_ID: 217
-      - CHAIN_ID: "A"
-        RES_NAME: "TRP"
-        RES_ID: 213
-      - CHAIN_ID: "A"
-        RES_NAME: "SER"
-        RES_ID: 214
+        RES_NAME: "ASN"
+        RES_ID: 124

@@ -12,6 +12,8 @@ import yaml
 
 from pdbUtils import pdbUtils
 ##########################################################################
+
+
 def gen_ligand_pdbqts(dockingOrders, ligandDir):
     allLigands = []
     for dockingOrder in dockingOrders:
@@ -46,7 +48,7 @@ def collate_docked_pdbs(outDir, rmDirs=True):
         for file in os.listdir(runDir):
             if file.endswith("_pocket_residues.yaml"):
                 pocketResiduesYaml = p.join(runDir, file)
-                pocketResiduesDest = p.join(outDir,file)
+                pocketResiduesDest = p.join(outDir, file)
                 copy(pocketResiduesYaml, pocketResiduesDest)
 
         if rmDirs:
@@ -59,41 +61,48 @@ def process_vina_results(
         outDir,
         dockedPdbqt,
         receptorPdb):
-    
+
     protName = dockingOrder["protein"]
     ligandNames = dockingOrder["ligands"]
-    ## use OBabel to split up dockedPdbt into multiple pose pdbqts
+    # use OBabel to split up dockedPdbt into multiple pose pdbqts
     obabelCommand = [
-            "obabel", dockedPdbqt,
-            "-O","pose.pdb",
-              "-m"]
+        "obabel", dockedPdbqt,
+        "-O", "pose.pdb",
+        "-m"]
     call(obabelCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    ## make a dir to put all of the docked complexes
+    # make a dir to put all of the docked complexes
     finalPdbDir = p.join(outDir, "final_docked_pdbs")
-    os.makedirs(finalPdbDir,exist_ok=True)
+    os.makedirs(finalPdbDir, exist_ok=True)
 
-    ligandsTag = "_".join(ligandNames) 
+    ligandsTag = "_".join(ligandNames)
     protDf = pdbUtils.pdb2df(receptorPdb)
     for file in os.listdir(outDir):
         if not p.splitext(file)[1] == ".pdb":
             continue
         if not file.startswith("pose"):
             continue
-        ## extract pose number from file name
-        poseNumber = "".join([char for char in p.splitext(file)[0] if char.isdigit()])
-        ## load posePdb and protPdb as dataframes, concat and write back to pdb file
-        posePdb = p.join(outDir,file)
+        # extract pose number from file name
+        poseNumber = "".join(
+            [char for char in p.splitext(file)[0] if char.isdigit()])
+        # load posePdb and protPdb as dataframes, concat and write back to pdb
+        # file
+        posePdb = p.join(outDir, file)
         poseDf = pdbUtils.pdb2df(posePdb)
-        complexDf = pd.concat([protDf,poseDf])
-        complexPdb = p.join(finalPdbDir,f"{protName}_{ligandsTag}_{poseNumber}.pdb")
+        complexDf = pd.concat([protDf, poseDf])
+        complexPdb = p.join(
+            finalPdbDir,
+            f"{protName}_{ligandsTag}_{poseNumber}.pdb")
         pdbUtils.df2pdb(complexDf, complexPdb)
 ##########################################################################
-def run_vina(outDir,configFile, ligPdbqts):
-    logFile = p.join(outDir,"vina_docking.log")
+
+
+def run_vina(outDir, configFile, ligPdbqts):
+    logFile = p.join(outDir, "vina_docking.log")
     ligands = " ".join(ligPdbqts)
-    with open(logFile,"a") as logFile:
-        run(f"vina --config {configFile} --ligand {ligands}", shell=True, stdout=logFile)
+    with open(logFile, "a") as logFile:
+        run(f"vina --config {configFile} --ligand {ligands}",
+            shell=True, stdout=logFile)
 ##########################################################################
 # writes a config file for a Vina docking simulation
 
@@ -142,19 +151,40 @@ def write_vina_config(
 
         return vinaConfigFile, dockedPdbqt
 
+def pdbDf2seq(df: pd.DataFrame) -> dict:
+    ## init dict
+    aminoAcidsThreeToOne = {
+    'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 
+    'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LYS': 'K', 'LEU': 'L',
+    'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R',
+    'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'
+}
+    ##
+    df['oneLetter'] = df['RES_NAME'].map(aminoAcidsThreeToOne)
+    uniqueResidues = df[['CHAIN_ID', 'RES_ID', 'oneLetter']].drop_duplicates(subset=['CHAIN_ID', 'RES_ID'])
 
+    chainGroups = uniqueResidues.sort_values(by=['CHAIN_ID', 'RES_ID']).groupby('CHAIN_ID')
+    sequences = {}
+    for chain, group in chainGroups:
+        sequences[chain] = ''.join(group['oneLetter'])
+    # Print all sequences, each represented by a different chain
+
+    return sequences
 ##########################################################################
-def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, dockingOrder, outDir):
+def pocket_residues_to_alainine(
+        protName,
+        pdbFile,
+        residuesToAlanine,
+        dockingOrder,
+        outDir):
     keepResidues = dockingOrder["keepResidues"]
 
-    ## remove residues in keepResidues, these will not be changed to Alanine
-    residuesToAlanine = [residue for residue in residuesToAlanine if not residue in keepResidues]
-
+    # remove residues in keepResidues, these will not be changed to Alanine
+    residuesToAlanine = [residue for residue in residuesToAlanine if residue not in keepResidues]
     protDf = pdbUtils.pdb2df(pdbFile)
-
     pocketResidues_set = set((d['CHAIN_ID'], d['RES_ID'])
                              for d in residuesToAlanine)
-
+    ## change residue names to new sequence
     def change_res_name(row):
         if (row['CHAIN_ID'], row['RES_ID']) in pocketResidues_set:
             return 'ALA'
@@ -162,24 +192,31 @@ def pocket_residues_to_alainine(protName, pdbFile, residuesToAlanine, dockingOrd
             return row['RES_NAME']
     protDf['RES_NAME'] = protDf.apply(change_res_name, axis=1)
 
-    tmpPdb = p.join(outDir, f"{protName}_tmp.pdb")
-    pdbUtils.df2pdb(protDf, tmpPdb)
 
-    firstResidue = int(protDf.iloc[0]["RES_ID"])
-    protAmpal = ampal.load_pdb(tmpPdb)
-    seqlength = len(protAmpal.sequences[0])
-    newSequence = ''
-    for i in range(firstResidue, firstResidue + seqlength):
-        if i in residuesToAlanine:
-            newSequence += 'A'
-        else:
-            newSequence += protAmpal.sequences[0][i - firstResidue]
-    alaAmpal = modelling.pack_side_chains_scwrl(protAmpal, [newSequence])
-    alaPdbString = alaAmpal.make_pdb(ligands=False)
+    ## get dict of one-letter sequences 
+    newSequences  = pdbDf2seq(protDf)
+
+
+    tmpChainPdbs = {}
+    for chainId in protDf['CHAIN_ID'].unique():
+        chainDf = protDf[protDf['CHAIN_ID'] == chainId]
+        tmpChainPdb = p.join(outDir, f"{protName}_{chainId}.pdb")
+        pdbUtils.df2pdb(chainDf, tmpChainPdb)
+
+        chainAmpal = ampal.load_pdb(tmpChainPdb)
+        newChainSequence = newSequences[chainId]
+        packedChain = modelling.pack_side_chains_scwrl(chainAmpal, [newChainSequence])
+        finalPdbString = packedChain.make_pdb(ligands=False)
+        with open(tmpChainPdb, "w") as file:
+            file.write(finalPdbString)
+        tmpChainPdbs[chainId] = tmpChainPdb
+
+    tmpChainPdbList = [tmpChainPdbs[chainId] for chainId in tmpChainPdbs]
     alaPdb = p.join(outDir, f"{protName}_pocketAla.pdb")
-    with open(alaPdb, "w") as file:
-        file.write(alaPdbString)
-    os.remove(tmpPdb)
+    pdbUtils.mergePdbs(tmpChainPdbList, alaPdb)
+    for pdbFile in tmpChainPdbList:
+        os.remove(pdbFile)
+
     return alaPdb
 ##########################################################################
 
@@ -234,8 +271,9 @@ def pdb_to_pdbqt(inPdb, outDir, jobType):
 ##########################################################################
 
 
-def set_up_directory(outDir, pathInfo,  dockingOrder):
-    # read protein pdb file, get name and make new dir for docking, copy over protein pdb
+def set_up_directory(outDir, pathInfo, dockingOrder):
+    # read protein pdb file, get name and make new dir for docking, copy over
+    # protein pdb
     protName = dockingOrder["protein"]
     ligands = dockingOrder["ligands"]
     ligandDir = pathInfo["ligandDir"]
@@ -245,7 +283,7 @@ def set_up_directory(outDir, pathInfo,  dockingOrder):
     if "pocketTag" in dockingOrder:
         pocketTag = dockingOrder["pocketTag"]
 
-    protPdb = p.join(protDir,f"{protName}.pdb")
+    protPdb = p.join(protDir, f"{protName}.pdb")
 
     # read ligand pdb and copy to new run directory
     ligandNames = []
@@ -256,16 +294,17 @@ def set_up_directory(outDir, pathInfo,  dockingOrder):
         ligPdbqts.append(ligPdbqt)
 
     ligandTag = "_".join(ligandNames)
-    runDir = p.join(outDir,f"{protName}_{ligandTag}_{pocketTag}")
-    os.makedirs(runDir,exist_ok=True)
-    ## copy over protPdb, move location of var
+    runDir = p.join(outDir, f"{protName}_{ligandTag}_{pocketTag}")
+    os.makedirs(runDir, exist_ok=True)
+    # copy over protPdb, move location of var
     protPdbDest = p.join(runDir, f"{protName}.pdb")
-    copy(protPdb,protPdbDest)
+    copy(protPdb, protPdbDest)
     protPdb = protPdbDest
 
-    
     return protName, protPdb, ligPdbqts, runDir
 ##########################################################################
+
+
 def directed_fpocket(protName, runDir, pdbFile, targetPocketResidues):
     # print("----->\tRunning Fpocket!")
     os.chdir(runDir)
@@ -286,7 +325,7 @@ def directed_fpocket(protName, runDir, pdbFile, targetPocketResidues):
         pocketDf = pdbUtils.pdb2df(pocketPdb)
         for targetRes in targetPocketResidues:
 
-            targetDf = pocketDf[(pocketDf["CHAIN_ID"] == targetRes["CHAIN_ID"]) 
+            targetDf = pocketDf[(pocketDf["CHAIN_ID"] == targetRes["CHAIN_ID"])
                                 & (pocketDf["RES_NAME"] == targetRes["RES_NAME"])
                                 & (pocketDf["RES_ID"] == targetRes["RES_ID"])]
             if len(targetDf) > 0:

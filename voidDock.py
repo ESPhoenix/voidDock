@@ -42,7 +42,6 @@ def main(configFile):
     cpusPerRun = config["cpuInfo"]["cpusPerRun"]
     parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
-
     if parallelCpus == 1:
         run_serial(config, dockingOrders)
     elif parallelCpus > 1:
@@ -57,8 +56,9 @@ def run_parallel(config, dockingOrders):
 
     with mp.Pool(processes=parallelCpus) as pool:
         try:
-            pool.starmap(docking_protocol,
-                         [(config,dockingOrder) for dockingOrder in dockingOrders])
+            pool.starmap(
+                docking_protocol, [
+                    (config, dockingOrder) for dockingOrder in dockingOrders])
         except Exception as e:
             print(f"ERROR: {e}")
 ##########################################################################
@@ -66,22 +66,20 @@ def run_parallel(config, dockingOrders):
 
 def run_serial(config, dockingOrders):
     for dockingOrder in dockingOrders:
-        docking_protocol(config,dockingOrder)
+        docking_protocol(config, dockingOrder)
 
 
 ##########################################################################
 def docking_protocol(config, dockingOrder):
-    ## read config
+    # read config
     pathInfo = config["pathInfo"]
     outDir = pathInfo["outDir"]
     cpusPerRun = config["cpuInfo"]["cpusPerRun"]
 
-
     # set up run directory and output key variables
-    protName, protPdb, ligPdbqts, runDir = set_up_directory(outDir = outDir,
-                                                             pathInfo = pathInfo,
-                                                                 dockingOrder = dockingOrder)
-    
+    protName, protPdb, ligPdbqts, runDir = set_up_directory(
+        outDir=outDir, pathInfo=pathInfo, dockingOrder=dockingOrder)
+
     # Use fpocket to identify correct pocket, calclate box center and return
     # residues in pocket
     targetPocketResidues = dockingOrder["pocketResidues"]
@@ -89,19 +87,18 @@ def docking_protocol(config, dockingOrder):
                                                  runDir=runDir,
                                                  pdbFile=protPdb,
                                                  targetPocketResidues=targetPocketResidues)
-   
+
     # Replace pocket residues with alanine
     alaPdb = pocket_residues_to_alainine(protName=protName,
                                          pdbFile=protPdb,
                                          residuesToAlanine=pocketResidues,
-                                         dockingOrder = dockingOrder,
+                                         dockingOrder=dockingOrder,
                                          outDir=runDir)
-    
+
     # Convert alanine PDB to PDBQT
     alaPdbtq = pdb_to_pdbqt(inPdb=alaPdb,
                             outDir=runDir,
                             jobType="rigid")
-    
 
     # Write a config file for vina
     vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
@@ -111,11 +108,11 @@ def docking_protocol(config, dockingOrder):
                                                 cpus=cpusPerRun)
     # Run vina docking
     run_vina(outDir=runDir,
-             configFile=vinaConfig, 
-             ligPdbqts = ligPdbqts)
-    
+             configFile=vinaConfig,
+             ligPdbqts=ligPdbqts)
+
     # split docking results PDBQT file into separate PDB files
-    process_vina_results(dockingOrder = dockingOrder,
+    process_vina_results(dockingOrder=dockingOrder,
                          outDir=runDir,
                          receptorPdb=alaPdb,
                          dockedPdbqt=dockedPdbqt)
