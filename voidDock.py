@@ -12,41 +12,41 @@ from util_voidDock import *
 # get inputs
 
 
-def read_inputs():
+def read_inputs() -> dict:
     # create an argpass parser, read config file,
     parser = argpass.ArgumentParser()
     parser.add_argument("--config")
     args = parser.parse_args()
 
-    configFile = args.config
+    configFile: str = args.config
     # Read config.yaml into a dictionary
     with open(configFile, "r") as yamlFile:
-        config = yaml.safe_load(yamlFile)
+        config: dict = yaml.safe_load(yamlFile)
 
     return config
 ##########################################################################
 
 
-def main(configFile):
+def main() -> None:
     # read config file
-    config = read_inputs()
-    outDir = config["pathInfo"]["outDir"]
-    ligandDir = config["pathInfo"]["ligandDir"]
-    dockingOrders = config["dockingOrders"]
+    config: dict = read_inputs()
+    outDir: str = config["pathInfo"]["outDir"]
+    ligandDir: str = config["pathInfo"]["ligandDir"]
+    dockingOrders: dict = config["dockingOrders"]
 
     # pre-prepare ligand pdbqt files
     gen_ligand_pdbqts(dockingOrders, ligandDir)
     # make outDir
     os.makedirs(outDir, exist_ok=True)
 
-    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
-    parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
+    cpusPerRun: int = config["cpuInfo"]["cpusPerRun"]
+    parallelCpus: int = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
     if parallelCpus == 1:
         run_serial(config, dockingOrders)
     elif parallelCpus > 1:
         run_parallel(config, dockingOrders)
-    # collate_docked_pdbs(outDir) ##TODO UNHASH!
+    collate_docked_pdbs(outDir, rmDirs = False) ##TODO UNHASH!
 ##########################################################################
 
 
@@ -116,13 +116,13 @@ def docking_protocol(config, dockingOrder):
                                     
     if not flexibleDocking:
         # Convert alanine PDB to PDBQT
-        protPdbqt = pdb_to_pdbqt(inPdb=protPdb,
+        rigidPdbqt = pdb_to_pdbqt(inPdb=protPdb,
                                 outDir=runDir,
                                 jobType="rigid")
 
         # Write a config file for vina
         vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
-                                            receptorPdbqt=protPdbqt,
+                                            receptorPdbqt=rigidPdbqt,
                                             boxCenter=boxCenter,
                                             boxSize=30,
                                             cpus=cpusPerRun,
@@ -135,12 +135,16 @@ def docking_protocol(config, dockingOrder):
              ligPdbqts=ligPdbqts)
 
     # split docking results PDBQT file into separate PDB files
-    process_vina_results(dockingOrder=dockingOrder,
-                         outDir=runDir,
-                         receptorPdb=protPdb,
-                         dockedPdbqt=dockedPdbqt)
-
+    # process_vina_results(dockingOrder=dockingOrder,
+    #                      outDir=runDir,
+    #                      receptorPdb=protPdb,
+    #                      dockedPdbqt=dockedPdbqt)
+                         
+    process_vina_results_flexible_fix(outDir= runDir,
+                        dockedPdbqt = dockedPdbqt,
+                        receptorPdbqt = rigidPdbqt,
+                        dockingOrder = dockingOrder)
 
 ##########################################################################
 if __name__ == "__main__":
-    main(configFile=None)
+    main()

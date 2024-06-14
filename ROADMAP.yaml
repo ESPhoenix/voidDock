@@ -1,7 +1,8 @@
-1. Make sure ligands and multiple chains work properly
-2. Make alanine-izaton optional 
-3. Re-intergrate flexible residues
+1. Make sure ligands and multiple chains work properly [x]
+2. Make alanine-izaton optional     [x]
+3. Re-intergrate flexible residues [x]
 4. CLEANCODE
     a) docstrings and comments
     b) type annotations
     c) better imports
+5. Sort out process_vina_outputs for flexible docking

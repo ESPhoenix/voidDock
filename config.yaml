@@ -14,7 +14,7 @@ cpuInfo:
 
 dockingOrders:
   - protein: "lmr_heme_round_2"
-    ligands: ["TPA"]
+    ligands: ["TPA", "TPA2"]
     mutatePocketToAla: False
     pocketResidues: 
       - CHAIN_ID: "A"
