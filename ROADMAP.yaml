@@ -1,0 +1,7 @@
+1. Make sure ligands and multiple chains work properly
+2. Make alanine-izaton optional 
+3. Re-intergrate flexible residues
+4. CLEANCODE
+    a) docstrings and comments
+    b) type annotations
+    c) better imports

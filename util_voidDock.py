@@ -54,8 +54,38 @@ def collate_docked_pdbs(outDir, rmDirs=True):
         if rmDirs:
             rmtree(runDir)
 ##########################################################################
+def gen_flex_pdbqts(protPdb, flexibleResidues, outDir):
+    name = p.splitext(p.basename(protPdb))[0]
+    # load pdbfile into df
+    protDf = pdbUtils.pdb2df(protPdb)
+    flexIndexes = []
+    dfsToConcat = []
+    for residue in flexibleResidues:
+
+        chainDf = protDf[(protDf["CHAIN_ID"] == residue["CHAIN_ID"]) & 
+                         (protDf["RES_ID"] == residue["RES_ID"]) &
+                         (~protDf["ATOM_NAME"].isin(["CA","C","O","N"]))]
+
+        chainIndexes = chainDf.index.to_list()
+        flexIndexes += chainIndexes
+        dfsToConcat.append(chainDf)
+    
+    flexDf = pd.concat(dfsToConcat, axis = 0)
+    rigidDf = protDf.drop(index=flexIndexes)
+
+    flexPdb = p.join(outDir,f"{name}_flex.pdb")
+    rigidPdb = p.join(outDir,f"{name}_rigid.pdb")
+    pdbUtils.df2pdb(flexDf,flexPdb)
+    pdbUtils.df2pdb(rigidDf,rigidPdb)
+    pdb_to_pdbqt(flexPdb, outDir, jobType="flex")
+    pdb_to_pdbqt(rigidPdb, outDir, jobType="rigid")
+    flexPdbqt = p.join(outDir,f"{name}_flex.pdbqt")
+    rigidPdbqt = p.join(outDir,f"{name}_rigid.pdbqt")
+
+    return rigidPdbqt, flexPdbqt
 
 
+##########################################################################
 def process_vina_results(
         dockingOrder,
         outDir,

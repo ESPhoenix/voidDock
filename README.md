@@ -27,7 +27,7 @@ conda activate voidDock38
 Install required Python libraries:
 
 ```bash
-conda config --add channels conda - forge
+conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda install openbabel
 conda install fpocket

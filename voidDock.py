@@ -88,24 +88,47 @@ def docking_protocol(config, dockingOrder):
                                                  pdbFile=protPdb,
                                                  targetPocketResidues=targetPocketResidues)
 
-    # Replace pocket residues with alanine
-    alaPdb = pocket_residues_to_alainine(protName=protName,
-                                         pdbFile=protPdb,
-                                         residuesToAlanine=pocketResidues,
-                                         dockingOrder=dockingOrder,
-                                         outDir=runDir)
 
-    # Convert alanine PDB to PDBQT
-    alaPdbtq = pdb_to_pdbqt(inPdb=alaPdb,
-                            outDir=runDir,
-                            jobType="rigid")
+    if dockingOrder["mutatePocketToAla"]: 
+        # Replace pocket residues with alanine
+        protPdb = pocket_residues_to_alainine(protName=protName,
+                                            pdbFile=protPdb,
+                                            residuesToAlanine=pocketResidues,
+                                            dockingOrder=dockingOrder,
+                                            outDir=runDir)
 
-    # Write a config file for vina
-    vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
-                                                receptorPdbqt=alaPdbtq,
+    flexibleDocking = False
+    if "flexibleResidues" in dockingOrder:
+        if len(dockingOrder["flexibleResidues"]) > 0:
+            flexibleDocking  = True
+            rigidPdbqt, flexPdbqt = gen_flex_pdbqts(protPdb = protPdb,
+                            flexibleResidues = dockingOrder["flexibleResidues"],
+                            outDir = runDir)
+
+            # Write a config file for vina
+            vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
+                                                receptorPdbqt=rigidPdbqt,
+                                                flexPdbqt = flexPdbqt,
                                                 boxCenter=boxCenter,
                                                 boxSize=30,
-                                                cpus=cpusPerRun)
+                                                cpus=cpusPerRun,
+                                                flex=True)
+                                    
+    if not flexibleDocking:
+        # Convert alanine PDB to PDBQT
+        protPdbqt = pdb_to_pdbqt(inPdb=protPdb,
+                                outDir=runDir,
+                                jobType="rigid")
+
+        # Write a config file for vina
+        vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
+                                            receptorPdbqt=protPdbqt,
+                                            boxCenter=boxCenter,
+                                            boxSize=30,
+                                            cpus=cpusPerRun,
+                                            flex=False)
+
+
     # Run vina docking
     run_vina(outDir=runDir,
              configFile=vinaConfig,
@@ -114,7 +137,7 @@ def docking_protocol(config, dockingOrder):
     # split docking results PDBQT file into separate PDB files
     process_vina_results(dockingOrder=dockingOrder,
                          outDir=runDir,
-                         receptorPdb=alaPdb,
+                         receptorPdb=protPdb,
                          dockedPdbqt=dockedPdbqt)
 
 

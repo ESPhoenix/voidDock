@@ -4,9 +4,9 @@
 # outDir - location to save output to
 
 pathInfo:
-  protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
-  ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
-  outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
+  protDir: "/home/nell/voidDock/receptors"
+  ligandDir: "/home/nell/voidDock/ligands"
+  outDir: "/home/nell/voidDock/outputs"
 
 cpuInfo:
   totalCpuUsage: 16
@@ -15,6 +15,7 @@ cpuInfo:
 dockingOrders:
   - protein: "lmr_heme_round_2"
     ligands: ["TPA"]
+    mutatePocketToAla: False
     pocketResidues: 
       - CHAIN_ID: "A"
         RES_NAME: "GLN"
@@ -30,3 +31,8 @@ dockingOrders:
       - CHAIN_ID: "A"
         RES_NAME: "ASN"
         RES_ID: 124
+
+    flexibleResidues:
+      - CHAIN_ID: "A"
+        RES_NAME: "GLN"
+        RES_ID: 13
