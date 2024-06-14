@@ -107,9 +107,9 @@ def read_docking_results(dockedPdbqt):
     # remove ROOT/BRANCH
     pdbqtColumns    =   ["ATOM","ATOM_ID", "ATOM_NAME", "RES_NAME",
                     "CHAIN_ID", "RES_ID", "X", "Y", "Z", "OCCUPANCY", 
-                    "BETAFACTOR","CHARGE", "ATOM_TYPE"]
+                    "BETAFACTOR","CHARGE"]
     columsNums = [(0, 6), (6, 11), (11, 17), (17, 21), (21, 22), (22, 26), 
-                  (26, 38), (38, 46), (46, 54), (54, 60), (60, 70), (70, 77), (77, 79)]
+                  (26, 38), (38, 46), (46, 54), (54, 60), (60, 70), (70, 77)]
     # read pdbqt file into multiple dataframes
     dockingDfList =[]
     data = []
@@ -134,23 +134,35 @@ def read_docking_results(dockedPdbqt):
     dockingDfList.append(df)
 
     return dockingDfList
+##########################################################################
+def get_ligand_res_names(ligandDir: os.PathLike, ligands: list) -> list:
+    resNames = []
+    for ligand in ligands:
+        ligandPdb = p.join(ligandDir, f"{ligand}.pdb")
+        ligandDf = pdbUtils.pdb2df(ligandPdb)
+        resName = ligandDf["RES_NAME"].tolist()[0]
+        resNames.append(resName)
+
+    return resNames
+    
+
 
 ##########################################################################
-def process_vina_results_flexible_fix(outDir,dockedPdbqt,receptorPdbqt,dockingOrder):
+def process_vina_results_flexible_fix(outDir,dockedPdbqt,receptorPdbqt,dockingOrder, ligandDir):
     # read output pdbqt file into a list of dataframes
     dockingDfList = read_docking_results(dockedPdbqt)
     receptorDf = pdbUtils.pdbqt2df(receptorPdbqt)
     protName = dockingOrder["protein"]
     ligandNames = dockingOrder["ligands"]
-
+    ligandResNames = get_ligand_res_names(ligandDir, ligandNames)
     # read ligand pdb and copy to new run directory
     ligTag = "_".join(ligandNames)
     nameTag = f"{protName}_{ligTag}"
-    dockedPdbs = splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder)
+    dockedPdbs = splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder, ligandResNames)
     return dockedPdbs
 
 ##########################################################################
-def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder):
+def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder, ligandResNames):
     '''
     Manual method using dataframes to splice docking dataframes with receptor dataframes
     This method must:
@@ -159,6 +171,9 @@ def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOr
         3. Preserve Chain Ids for the receptor
         4. Ensure that Chain Ids for ligands are different to receptor chain Ids
     '''
+    ## set elements in receptor to None (all messed up from vina outputs)
+    receptorDf.loc[:,"ELEMENT"] = None
+
     ## make an output dir to put files in 
     finalPdbDir = p.join(outDir,"final_docked_pdbs")
     os.makedirs(finalPdbDir,exist_ok=True)
@@ -168,18 +183,19 @@ def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOr
     dockedPdbs = []
     ## loop over each pose in dockingDfList
     for poseNumber, dockedDf in zip(range(1,len(dockingDfList)+1),dockingDfList):
+        dockedDf.loc[:,"ELEMENT"] = None
+
         ## split dockingDf into ligand and flexible residues
-        ligandDf = dockedDf[dockedDf["RES_NAME"].isin(ligandNames)]
-        flexibleResidueDf = dockedDf[~dockedDf["RES_NAME"].isin(ligandNames)]
+        ligandDf = dockedDf[dockedDf["RES_NAME"].isin(ligandResNames)]
+        flexibleResidueDf = dockedDf[~dockedDf["RES_NAME"].isin(ligandResNames)]
          
         ## find  max chain ID in receptor, set ligand to one more than that
         chainIdIdCounter = sorted(receptorDf["CHAIN_ID"].unique().tolist(), reverse=True)[0]
-        for ligandResId in ligandDf["RES_ID"].unique().tolist():
-            thisLigandIndexes = ligandDf["RES_ID"] == ligandResId
+        for ligandResName in ligandResNames:
+            thisLigandIndexes = ligandDf["RES_NAME"] == ligandResName
             chainIdIdCounter = chr((ord(chainIdIdCounter) - ord('A') + 1) % 26 + ord('A'))
             ligandDf.loc[thisLigandIndexes,"CHAIN_ID"] = chainIdIdCounter
             ligandDf.loc[thisLigandIndexes, "RES_ID"] = 1
-
         # Concat docked and rigid DFs togeter - this is in a weird order
         wholeDisorderedDf = pd.concat([receptorDf, flexibleResidueDf, ligandDf],axis=0)
 

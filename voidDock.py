@@ -76,6 +76,7 @@ def docking_protocol(config, dockingOrder):
     outDir = pathInfo["outDir"]
     cpusPerRun = config["cpuInfo"]["cpusPerRun"]
 
+
     # set up run directory and output key variables
     protName, protPdb, ligPdbqts, runDir = set_up_directory(
         outDir=outDir, pathInfo=pathInfo, dockingOrder=dockingOrder)
@@ -139,11 +140,13 @@ def docking_protocol(config, dockingOrder):
     #                      outDir=runDir,
     #                      receptorPdb=protPdb,
     #                      dockedPdbqt=dockedPdbqt)
-                         
+        
     process_vina_results_flexible_fix(outDir= runDir,
                         dockedPdbqt = dockedPdbqt,
                         receptorPdbqt = rigidPdbqt,
-                        dockingOrder = dockingOrder)
+                        dockingOrder = dockingOrder,
+                        ligandDir= config["pathInfo"]["ligandDir"]
+                        )
 
 ##########################################################################
 if __name__ == "__main__":
