@@ -8,6 +8,10 @@ import multiprocessing as mp
 import yaml
 # inport util scripts
 from util_voidDock import *
+# clean code
+from typing import Union
+from os import PathLike
+
 ##########################################################################
 # get inputs
 
@@ -18,7 +22,7 @@ def read_inputs() -> dict:
     parser.add_argument("--config")
     args = parser.parse_args()
 
-    configFile: str = args.config
+    configFile: Union[PathLike, str] = args.config
     # Read config.yaml into a dictionary
     with open(configFile, "r") as yamlFile:
         config: dict = yaml.safe_load(yamlFile)
@@ -30,8 +34,8 @@ def read_inputs() -> dict:
 def main() -> None:
     # read config file
     config: dict = read_inputs()
-    outDir: str = config["pathInfo"]["outDir"]
-    ligandDir: str = config["pathInfo"]["ligandDir"]
+    outDir: Union[PathLike, str] = config["pathInfo"]["outDir"]
+    ligandDir: Union[PathLike, str] = config["pathInfo"]["ligandDir"]
     dockingOrders: dict = config["dockingOrders"]
 
     # pre-prepare ligand pdbqt files
@@ -46,13 +50,13 @@ def main() -> None:
         run_serial(config, dockingOrders)
     elif parallelCpus > 1:
         run_parallel(config, dockingOrders)
-    collate_docked_pdbs(outDir, rmDirs = False) ##TODO UNHASH!
+    collate_docked_pdbs(outDir, rmDirs = False)
 ##########################################################################
 
 
-def run_parallel(config, dockingOrders):
-    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
-    parallelCpus = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
+def run_parallel(config: dict, dockingOrders: dict) -> None:
+    cpusPerRun: int = config["cpuInfo"]["cpusPerRun"]
+    parallelCpus: int = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
     with mp.Pool(processes=parallelCpus) as pool:
         try:
@@ -64,26 +68,27 @@ def run_parallel(config, dockingOrders):
 ##########################################################################
 
 
-def run_serial(config, dockingOrders):
+def run_serial(config: dict, dockingOrders: dict) -> None:
     for dockingOrder in dockingOrders:
         docking_protocol(config, dockingOrder)
 
 
 ##########################################################################
-def docking_protocol(config, dockingOrder):
+def docking_protocol(config: dict, dockingOrder:dict) -> None:
     # read config
-    pathInfo = config["pathInfo"]
-    outDir = pathInfo["outDir"]
-    cpusPerRun = config["cpuInfo"]["cpusPerRun"]
+    pathInfo: Union[PathLike, str] = config["pathInfo"]
+    outDir: Union[PathLike, str] = pathInfo["outDir"]
+    cpusPerRun: Union[PathLike, str] = config["cpuInfo"]["cpusPerRun"]
 
 
     # set up run directory and output key variables
-    protName, protPdb, ligPdbqts, runDir = set_up_directory(
-        outDir=outDir, pathInfo=pathInfo, dockingOrder=dockingOrder)
+    protName, protPdb, ligPdbqts, runDir = set_up_directory(outDir=outDir,
+                                                             pathInfo=pathInfo,
+                                                               dockingOrder=dockingOrder)
 
     # Use fpocket to identify correct pocket, calclate box center and return
     # residues in pocket
-    targetPocketResidues = dockingOrder["pocketResidues"]
+    targetPocketResidues: list = dockingOrder["pocketResidues"]
     boxCenter, pocketResidues = directed_fpocket(protName=protName,
                                                  runDir=runDir,
                                                  pdbFile=protPdb,
@@ -92,19 +97,19 @@ def docking_protocol(config, dockingOrder):
 
     if dockingOrder["mutatePocketToAla"]: 
         # Replace pocket residues with alanine
-        protPdb = pocket_residues_to_alainine(protName=protName,
+        protPdb: Union[PathLike, str] = pocket_residues_to_alainine(protName=protName,
                                             pdbFile=protPdb,
                                             residuesToAlanine=pocketResidues,
                                             dockingOrder=dockingOrder,
                                             outDir=runDir)
 
-    flexibleDocking = False
+    flexibleDocking: bool = False
     if "flexibleResidues" in dockingOrder:
         if len(dockingOrder["flexibleResidues"]) > 0:
             flexibleDocking  = True
             rigidPdbqt, flexPdbqt = gen_flex_pdbqts(protPdb = protPdb,
-                            flexibleResidues = dockingOrder["flexibleResidues"],
-                            outDir = runDir)
+                                                    flexibleResidues = dockingOrder["flexibleResidues"],
+                                                    outDir = runDir)
 
             # Write a config file for vina
             vinaConfig, dockedPdbqt = write_vina_config(outDir=runDir,
@@ -117,7 +122,7 @@ def docking_protocol(config, dockingOrder):
                                     
     if not flexibleDocking:
         # Convert alanine PDB to PDBQT
-        rigidPdbqt = pdb_to_pdbqt(inPdb=protPdb,
+        rigidPdbqt: Union[PathLike, str] = pdb_to_pdbqt(inPdb=protPdb,
                                 outDir=runDir,
                                 jobType="rigid")
 

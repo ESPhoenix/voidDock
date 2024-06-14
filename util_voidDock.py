@@ -7,14 +7,17 @@ import os.path as p
 from shutil import copy, move, rmtree
 import pandas as pd
 import yaml
-from typing import Tuple
 ## WellsWood Lab libraries
 import ampal
 import isambard.modelling as modelling
 from pdbUtils import pdbUtils
+## clean code
+from typing import Tuple, Union
+from os import PathLike
+import numpy as np
 ##########################################################################
 
-def gen_ligand_pdbqts(dockingOrders: dict, ligandDir:str) -> None:
+def gen_ligand_pdbqts(dockingOrders: dict, ligandDir: Union[PathLike, str]) -> None:
     '''
     Before running docking, generate pdbqt files for all ligands
     This saves us from generating a ligand pdbqt per docking run
@@ -31,7 +34,7 @@ def gen_ligand_pdbqts(dockingOrders: dict, ligandDir:str) -> None:
     ## look in ligandsDir for these ligands
     ## call pdb_to_pdbqt to convert to pdbqt file
     for ligand in allLigands:
-        ligPdb: str = p.join(ligandDir, f"{ligand}.pdb")
+        ligPdb: Union[PathLike, str] = p.join(ligandDir, f"{ligand}.pdb")
         if not p.isfile(ligPdb):
             print(f"{ligPdb} not found, skipping...")
             continue
@@ -39,7 +42,7 @@ def gen_ligand_pdbqts(dockingOrders: dict, ligandDir:str) -> None:
 ##########################################################################
 
 
-def collate_docked_pdbs(outDir: str, rmDirs: bool = True) -> None:
+def collate_docked_pdbs(outDir: Union[PathLike, str], rmDirs: bool = True) -> None:
     '''
     After a docking simulation has been run, get:
      - output pdb files
@@ -49,29 +52,38 @@ def collate_docked_pdbs(outDir: str, rmDirs: bool = True) -> None:
     '''
     ## loop through run directory and copy required files to final_docked_pdbs
     for dir in os.listdir(outDir):
-        runDir: str = p.join(outDir, dir)
-        finalDockedPdbDir: str = p.join(runDir, "final_docked_pdbs")
+        runDir: Union[PathLike, str]= p.join(outDir, dir)
+        finalDockedPdbDir: Union[PathLike, str]= p.join(runDir, "final_docked_pdbs")
         if not p.isdir(finalDockedPdbDir):
             continue
         for file in os.listdir(finalDockedPdbDir):
             if not p.splitext(file)[1] == ".pdb":
                 continue
-            pdbFile: str = p.join(finalDockedPdbDir, file)
-            pdbDest: str = p.join(outDir, file)
+            pdbFile: Union[PathLike, str]= p.join(finalDockedPdbDir, file)
+            pdbDest: Union[PathLike, str]= p.join(outDir, file)
             copy(pdbFile, pdbDest)
         for file in os.listdir(runDir):
             if file.endswith("_pocket_residues.yaml"):
-                pocketResiduesYaml: str = p.join(runDir, file)
-                pocketResiduesDest: str = p.join(outDir, file)
+                pocketResiduesYaml: Union[PathLike, str]= p.join(runDir, file)
+                pocketResiduesDest: Union[PathLike, str]= p.join(outDir, file)
                 copy(pocketResiduesYaml, pocketResiduesDest)
         ## if specified in config, remove all other files and directories
         ## produced by fpocket/docking procedure
         if rmDirs:
             rmtree(runDir)
 ##########################################################################
-def gen_flex_pdbqts(protPdb: str, flexibleResidues: list, outDir: str) -> Tuple[str, str]:
+def gen_flex_pdbqts(protPdb: Union[PathLike, str],
+                     flexibleResidues: list,
+                       outDir: Union[PathLike, str]) -> Tuple[str, str]:
+    """
+    Using user generated list of desired flexible residues:
+    1. Create separate pdb files for flexible residues
+    2. Create new rigid pdb file by dropping flexible residues from protein pdb
+    3. Convert these pdb files to pdbqt files
+    """
+
     ## get protein name from its filename
-    protName: str = p.splitext(p.basename(protPdb))[0]
+    protName: Union[PathLike, str] = p.splitext(p.basename(protPdb))[0]
     # load pdbfile into df
     protDf: pd.DataFrame = pdbUtils.pdb2df(protPdb)
     ## create empty lists to store data
@@ -90,45 +102,49 @@ def gen_flex_pdbqts(protPdb: str, flexibleResidues: list, outDir: str) -> Tuple[
     flexDf: pd.DataFrame = pd.concat(dfsToConcat, axis = 0)
     rigidDf: pd.DataFrame = protDf.drop(index=flexIndexes)
     ## write dataframes to pdb files
-    flexPdb: str = p.join(outDir,f"{protName}_flex.pdb")
-    rigidPdb: str = p.join(outDir,f"{protName}_rigid.pdb")
+    flexPdb: Union[PathLike, str] = p.join(outDir,f"{protName}_flex.pdb")
+    rigidPdb: Union[PathLike, str] = p.join(outDir,f"{protName}_rigid.pdb")
     pdbUtils.df2pdb(flexDf,flexPdb)
     pdbUtils.df2pdb(rigidDf,rigidPdb)
     ## convert pdb files to pdbqt files
     pdb_to_pdbqt(flexPdb, outDir, jobType="flex")
     pdb_to_pdbqt(rigidPdb, outDir, jobType="rigid")
-    flexPdbqt: str = p.join(outDir,f"{protName}_flex.pdbqt")
-    rigidPdbqt: str = p.join(outDir,f"{protName}_rigid.pdbqt")
+    flexPdbqt: Union[PathLike, str] = p.join(outDir,f"{protName}_flex.pdbqt")
+    rigidPdbqt: Union[PathLike, str] = p.join(outDir,f"{protName}_rigid.pdbqt")
 
     return rigidPdbqt, flexPdbqt
 ##########################################################################
 
-def read_docking_results(dockedPdbqt):
+def read_docking_results(dockedPdbqt: Union[PathLike, str]) -> list:
+    """
+    Reads docking result pdbqt file into one dataframe per binding pose
+    Returns these dataframes in a list
+    """
     # remove ROOT/BRANCH
-    pdbqtColumns    =   ["ATOM","ATOM_ID", "ATOM_NAME", "RES_NAME",
+    pdbqtColumns: list    =   ["ATOM","ATOM_ID", "ATOM_NAME", "RES_NAME",
                     "CHAIN_ID", "RES_ID", "X", "Y", "Z", "OCCUPANCY", 
                     "BETAFACTOR","CHARGE"]
-    columsNums = [(0, 6), (6, 11), (11, 17), (17, 21), (21, 22), (22, 26), 
+    columsNums: list[tuple] = [(0, 6), (6, 11), (11, 17), (17, 21), (21, 22), (22, 26), 
                   (26, 38), (38, 46), (46, 54), (54, 60), (60, 70), (70, 77)]
     # read pdbqt file into multiple dataframes
-    dockingDfList =[]
-    data = []
+    dockingDfList: list =[]
+    data: list = []
     # read output PDBQT file into set of dataframes
     with open(dockedPdbqt, 'r') as file:            
         for line in file:   
             if line.startswith("MODEL"):        # Each binding pose starts with "MODEL"
                 if data == []:                  # skip 1st "MODEL"
                     continue
-                df = pd.DataFrame(data,columns=pdbqtColumns)
+                df: pd.DataFrame = pd.DataFrame(data,columns=pdbqtColumns)
                 df[["ATOM_ID","RES_ID"]] = df[["ATOM_ID","RES_ID"]].astype(int)
                 df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]]=df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]].astype(float)
                 dockingDfList.append(df)
                 data = []
             elif line.startswith("ATOM") or line.startswith("HETATM"):
-                record = [line[start:end].strip() for start, end in columsNums]
+                record: list = [line[start:end].strip() for start, end in columsNums]
                 data.append(record)
     # deal with last entry in pdbqtfile
-    df = pd.DataFrame(data,columns=pdbqtColumns)
+    df: pd.DataFrame = pd.DataFrame(data,columns=pdbqtColumns)
     df[["ATOM_ID","RES_ID"]] = df[["ATOM_ID","RES_ID"]].astype(int)
     df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]]=df[["X","Y","Z","OCCUPANCY","BETAFACTOR"]].astype(float)
     dockingDfList.append(df)
@@ -136,11 +152,14 @@ def read_docking_results(dockedPdbqt):
     return dockingDfList
 ##########################################################################
 def get_ligand_res_names(ligandDir: os.PathLike, ligands: list) -> list:
-    resNames = []
+    """
+    Simple loop function to look through ligand pdb files and extract three-letter residue names
+    """
+    resNames: list = []
     for ligand in ligands:
-        ligandPdb = p.join(ligandDir, f"{ligand}.pdb")
-        ligandDf = pdbUtils.pdb2df(ligandPdb)
-        resName = ligandDf["RES_NAME"].tolist()[0]
+        ligandPdb: Union[PathLike, str] = p.join(ligandDir, f"{ligand}.pdb")
+        ligandDf: pd.DataFrame = pdbUtils.pdb2df(ligandPdb)
+        resName: str = ligandDf["RES_NAME"].tolist()[0]
         resNames.append(resName)
 
     return resNames
@@ -148,21 +167,39 @@ def get_ligand_res_names(ligandDir: os.PathLike, ligands: list) -> list:
 
 
 ##########################################################################
-def process_vina_results_flexible_fix(outDir,dockedPdbqt,receptorPdbqt,dockingOrder, ligandDir):
+def process_vina_results_flexible_fix(outDir: Union[PathLike, str],
+                                        dockedPdbqt: Union[PathLike, str],
+                                        receptorPdbqt: Union[PathLike, str],
+                                        dockingOrder: dict,
+                                        ligandDir: Union[PathLike, str]) -> list:
+    """
+    Main function for processing vina outputs
+    1. Reads binding_poses.pdbqt into one DataFrame per pose
+    2. Merges individual poses with rigid receptor 
+    3. Reorganises flexible residues back into correct place
+    4. Ensures that ligands have a different chain Id to the receptor
+    5. Writes processed poses to pdb files
+    """
+
     # read output pdbqt file into a list of dataframes
-    dockingDfList = read_docking_results(dockedPdbqt)
-    receptorDf = pdbUtils.pdbqt2df(receptorPdbqt)
-    protName = dockingOrder["protein"]
-    ligandNames = dockingOrder["ligands"]
-    ligandResNames = get_ligand_res_names(ligandDir, ligandNames)
+    dockingDfList: list = read_docking_results(dockedPdbqt)
+    receptorDf: pd.DataFrame = pdbUtils.pdbqt2df(receptorPdbqt)
+    protName: str = dockingOrder["protein"]
+    ligandNames: list[str] = dockingOrder["ligands"]
+    ligandResNames: list[str] = get_ligand_res_names(ligandDir, ligandNames)
     # read ligand pdb and copy to new run directory
-    ligTag = "_".join(ligandNames)
-    nameTag = f"{protName}_{ligTag}"
-    dockedPdbs = splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder, ligandResNames)
+    ligTag: str = "_".join(ligandNames)
+    nameTag: str = f"{protName}_{ligTag}"
+    dockedPdbs: list = splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder, ligandResNames)
     return dockedPdbs
 
 ##########################################################################
-def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOrder, ligandResNames):
+def splice_docking_results(dockingDfList: list,
+                            receptorDf: pd.DataFrame,
+                              outDir: Union[PathLike, str],
+                                nameTag: str,
+                                  dockingOrder: dict,
+                                    ligandResNames: list) -> list:
     '''
     Manual method using dataframes to splice docking dataframes with receptor dataframes
     This method must:
@@ -175,43 +212,41 @@ def splice_docking_results(dockingDfList, receptorDf, outDir, nameTag, dockingOr
     receptorDf.loc[:,"ELEMENT"] = None
 
     ## make an output dir to put files in 
-    finalPdbDir = p.join(outDir,"final_docked_pdbs")
+    finalPdbDir: Union[PathLike, str] = p.join(outDir,"final_docked_pdbs")
     os.makedirs(finalPdbDir,exist_ok=True)
-    ## get ligand names from dockingOrder
-    ligandNames = dockingOrder["ligands"]
     ## init an empty list to store docked pdb files
-    dockedPdbs = []
+    dockedPdbs: list = []
     ## loop over each pose in dockingDfList
     for poseNumber, dockedDf in zip(range(1,len(dockingDfList)+1),dockingDfList):
         dockedDf.loc[:,"ELEMENT"] = None
 
         ## split dockingDf into ligand and flexible residues
-        ligandDf = dockedDf[dockedDf["RES_NAME"].isin(ligandResNames)]
-        flexibleResidueDf = dockedDf[~dockedDf["RES_NAME"].isin(ligandResNames)]
+        ligandDf: pd.DataFrame = dockedDf[dockedDf["RES_NAME"].isin(ligandResNames)]
+        flexibleResidueDf: pd.DataFrame = dockedDf[~dockedDf["RES_NAME"].isin(ligandResNames)]
          
         ## find  max chain ID in receptor, set ligand to one more than that
-        chainIdIdCounter = sorted(receptorDf["CHAIN_ID"].unique().tolist(), reverse=True)[0]
+        chainIdIdCounter: str = sorted(receptorDf["CHAIN_ID"].unique().tolist(), reverse=True)[0]
         for ligandResName in ligandResNames:
-            thisLigandIndexes = ligandDf["RES_NAME"] == ligandResName
-            chainIdIdCounter = chr((ord(chainIdIdCounter) - ord('A') + 1) % 26 + ord('A'))
+            thisLigandIndexes: pd.Series = ligandDf["RES_NAME"] == ligandResName
+            chainIdIdCounter: str = chr((ord(chainIdIdCounter) - ord('A') + 1) % 26 + ord('A'))
             ligandDf.loc[thisLigandIndexes,"CHAIN_ID"] = chainIdIdCounter
             ligandDf.loc[thisLigandIndexes, "RES_ID"] = 1
         # Concat docked and rigid DFs togeter - this is in a weird order
-        wholeDisorderedDf = pd.concat([receptorDf, flexibleResidueDf, ligandDf],axis=0)
+        wholeDisorderedDf: pd.DataFrame = pd.concat([receptorDf, flexibleResidueDf, ligandDf],axis=0)
 
-        dfsToConcat = []
+        dfsToConcat: str = []
         for chainId in sorted(pd.unique(wholeDisorderedDf["CHAIN_ID"]).tolist()):
-            chainDf = wholeDisorderedDf[wholeDisorderedDf["CHAIN_ID"] == chainId]
+            chainDf: pd.DataFrame = wholeDisorderedDf[wholeDisorderedDf["CHAIN_ID"] == chainId]
             for resId in sorted(chainDf["RES_ID"].unique().tolist()):
-                resDf = chainDf[chainDf["RES_ID"] == resId]
+                resDf: pd.DataFrame = chainDf[chainDf["RES_ID"] == resId]
 
                 dfsToConcat.append(resDf)
         # concat into correct order
-        wholeDf = pd.concat(dfsToConcat)
+        wholeDf: pd.DataFrame = pd.concat(dfsToConcat)
         # re-do atom numbers
         wholeDf.loc[:,"ATOM_ID"] = range(1,len(wholeDf)+1)
         # save as pdb file
-        saveFile = p.join(finalPdbDir, f"{nameTag}_{str(poseNumber)}.pdb")
+        saveFile: Union[PathLike, str] = p.join(finalPdbDir, f"{nameTag}_{str(poseNumber)}.pdb")
         pdbUtils.df2pdb(df=wholeDf,outFile=saveFile)
         dockedPdbs.append(saveFile)
     return dockedPdbs
