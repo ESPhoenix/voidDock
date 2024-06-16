@@ -140,13 +140,8 @@ def docking_protocol(config: dict, dockingOrder:dict) -> None:
              configFile=vinaConfig,
              ligPdbqts=ligPdbqts)
 
-    # split docking results PDBQT file into separate PDB files
-    # process_vina_results(dockingOrder=dockingOrder,
-    #                      outDir=runDir,
-    #                      receptorPdb=protPdb,
-    #                      dockedPdbqt=dockedPdbqt)
         
-    process_vina_results_flexible_fix(outDir= runDir,
+    process_vina_results(outDir= runDir,
                         dockedPdbqt = dockedPdbqt,
                         receptorPdbqt = rigidPdbqt,
                         dockingOrder = dockingOrder,
