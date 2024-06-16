@@ -2,12 +2,20 @@
 2. Make alanine-izaton optional     [x]
 3. Re-intergrate flexible residues [x]
 4. CLEANCODE
-    a) docstrings and comments  [...]
-    b) type annotations         [...]
-        - str to os.PathLike    []
+    a) docstrings and comments  [x]
+    b) type annotations         [x]
+        - str to os.PathLike    [x]
     c) better imports           []
 5. Sort out process_vina_outputs for flexible docking [X]
     a) fix elements               [x]
     b) fix chainID for ligands     [X]
         - get resName for each ligand 
         - use that in read_docking_results
+6. Add GNINA as another way to do docking simulation        []
+    - this should use *most* of the setup functionallity
+    - but may require different file formats
+    - will need more of a look at the GNINA-spesific parameters
+7. Update README.md     []
+    - scwrl4 installation []
+
+8. Replace scwrl4 with something less annoying to install []

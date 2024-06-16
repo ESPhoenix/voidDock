@@ -43,6 +43,18 @@ pip install ampal
 pip install isambard
 pip install pdbutils
 ```
+Note that if some of these installs fail, you may need to manually debug the installation(s) that failed
+
+# Step 4: Install Scrwl4
+
+To get the Scrwl4 program, you will need to obtain a liscense from:
+[The Dunbrack Lab](http://dunbrack.fccc.edu/lab/scwrl, "link to Scwrl4 install instructions")
+Once you have done this, you will be sent a link to a download location for Scrwl4
+Follow the instructions in the installer
+We reccomend that you do not use the default install location. Instead use ~/bin/Scrwl4 or an equivalent
+After this, remember to add your install location to your PATH variable in .bashrc / .bash_profile
+
+
 
 # Step 4: Create Config File
 
