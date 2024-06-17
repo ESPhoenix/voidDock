@@ -4,8 +4,18 @@ import yaml
 import os
 from os import PathLike
 from os import path as p
+import multiprocessing as mp
 
-
+#########################################################################
+def check_info_for_manditory_args(info, infoName,  argNames):
+    unpackedDicts = []
+    for  argName in argNames:
+        isArg, argValue = check_dict_for_key(info, argName)
+        if not isArg:
+            raise KeyError(f"Argument {argName} not found in {infoName}")
+        unpackedDicts.append(argValue)
+    return tuple(unpackedDicts)
+#########################################################################
 def check_dict_for_key(info: dict, key: any) -> Tuple[bool, any]:
     if key in info:
         if info[key] == False:
@@ -13,51 +23,56 @@ def check_dict_for_key(info: dict, key: any) -> Tuple[bool, any]:
         else:
             return True, info[key]
     return False, None
-
+#########################################################################
 def validate_path(argName, argPath):
     if  not isinstance(argPath, Union[os.PathLike, str]) :
         raise TypeError(f"The config argument {argName} = {argPath} is not a PathLike.")
     # Check if the path exists
     if not p.exists(argPath):
         raise FileNotFoundError(f"The config argument {argName} = {argPath} does not exist.")
+#########################################################################
 
+def validate_residue_dicts(info):
 
+    for residue in info:
+        chainId, resName, resId = check_info_for_manditory_args(residue, "residue", ["CHAIN_ID", "RES_NAME", "RES_ID"])
+
+#########################################################################
 def check_pathInfo(config: dict) -> None:
-    isPathInfo, pathInfo = check_dict_for_key(config, "pathInfo")
-    if not isPathInfo:
-        print("No pathInfo found in config file")
-        exit(1)
-    for argName in ["protDir", "ligandDir", "outDir"]:
-        isArg, argValue = check_dict_for_key(pathInfo, argName)
-        if not isArg:
-            print(f"Argument {argName} not found in pathInfo")
-        validate_path(argName, argValue)
+    pathInfo = check_info_for_manditory_args(config, "config", ["pathInfo"])
 
+    protDir, ligandDir, outDir = check_info_for_manditory_args(pathInfo, "pathInfo", ["protDir", "ligandDir", "outDir"])
+    for argValue, argName in zip([protDir, ligandDir, outDir], ["protDir", "ligandDir", "outDir"])
+        validate_path(argName, argValue)
+#########################################################################
 
 def check_cpuInfo(config: dict) -> None:
-    isCpuInfo, cpuInfo = check_dict_for_key(config, "cpuInfo")
-    if not isCpuInfo:
-        print("No cpuInfo found in config file")
-        exit(1)
-    for argName in ["totalCpuUsage", "cpusPerRun"]:
-        isArg, argValue = check_dict_for_key(cpuInfo, argName)
-        if not isArg:
-            print(f"Argument {argName} not found in cpuInfo")
-            exit(1)
+    cpuInfo = check_info_for_manditory_args(config,
+                                             "config",
+                                                 ["cpuInfo"])
+
+    totalCpuUseage, cpusPerRun = check_info_for_manditory_args(cpuInfo,
+                                                                "cpuInfo",
+                                                                  ["totalCpuUseage", "cpusPerRun"])
+    ## check that cpuInfo arguments are int values and are positive
+    for argValue, argName in zip([totalCpuUseage, cpusPerRun], ["totalCpuUseage", "cpusPerRun"]):
         if not isinstance(argValue, int):
             raise TypeError(f"The config argument {argName} = {argValue} is not a an int type.")
+        if argValue < 1:
+            raise ValueError(f"The config argument {argName} = {argValue} must be a int greater than 1")
+    if totalCpuUseage > mp.cpu_count():
+        raise ValueError("totalCpuUseage argument exceeds your computers number of cores")
 
+
+
+#########################################################################
 def check_dockingOrders(config: dict) -> None:
     ## we know pathInfo is all good, so we can use it here
     pathInfo = config["pathInfo"]
     protDir = pathInfo["protDir"]
     ligandDir = pathInfo["ligandDir"]
+    dockingOrders = check_info_for_manditory_args(config, "config", "dockingOrders")
 
-
-    isDockingOrders, dockingOrders = check_dict_for_key(config, "dockingOrders")
-    if not isDockingOrders:
-        print("No dockingOrders found in config file")
-        exit(1)
     if len(dockingOrders) == 0:
         print("No entries in dockingOrders argument in config")
     for dockingOrder in dockingOrders:
@@ -72,15 +87,13 @@ def check_dockingOrders(config: dict) -> None:
         protPdb = p.join(protDir,f"{protName}.pdb")
         if not p.isfile(protPdb):
             raise FileNotFoundError(f"Protein PDB {protPdb} does not exist")
-
-
         ligandNames = dockingOrder["ligands"]
         for ligandName in ligandNames:
             ligandPdb = p.join(ligandDir, f"{ligandName}.pdb")
             if not p.isfile(ligandPdb):
                 raise FileNotFoundError(f"Ligand PDB {ligandPdb} does not exist")
 
-
+#########################################################################
 def read_input_yaml() -> dict:
     # create an argpass parser, read config file,
     parser = argpass.ArgumentParser()
@@ -99,3 +112,5 @@ def read_input_yaml() -> dict:
     except yaml.YAMLError as exc:
         print("Error parsing YAML file:", exc)
         exit(1)
+
+#########################################################################
