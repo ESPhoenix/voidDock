@@ -8,32 +8,18 @@ import multiprocessing as mp
 import yaml
 # inport util scripts
 from util_voidDock import *
+import config_checker
 # clean code
 from typing import Union
 from os import PathLike
 
-##########################################################################
-# get inputs
 
-
-def read_inputs() -> dict:
-    # create an argpass parser, read config file,
-    parser = argpass.ArgumentParser()
-    parser.add_argument("--config")
-    args = parser.parse_args()
-
-    configFile: Union[PathLike, str] = args.config
-    # Read config.yaml into a dictionary
-    with open(configFile, "r") as yamlFile:
-        config: dict = yaml.safe_load(yamlFile)
-
-    return config
 ##########################################################################
 
 
 def main() -> None:
     # read config file
-    config: dict = read_inputs()
+    config: dict = config_checker.read_and_validate_config()
     outDir: Union[PathLike, str] = config["pathInfo"]["outDir"]
     ligandDir: Union[PathLike, str] = config["pathInfo"]["ligandDir"]
     dockingOrders: dict = config["dockingOrders"]

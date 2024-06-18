@@ -9,8 +9,8 @@ pathInfo:
   outDir: "/home/nell/voidDock/outputs"
 
 cpuInfo:
-  totalCpuUsage: 16
-  cpusPerRun: 16
+  totalCpuUsage: 12
+  cpusPerRun: 1
 
 dockingOrders:
   - protein: "lmr_heme_round_2"
