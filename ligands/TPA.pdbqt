@@ -1,4 +1,4 @@
-REMARK  Name = /home/nell/voidDock/ligands/TPA.pdb
+REMARK  Name = /home/esp/scriptDevelopment/voidDock/ligands/TPA.pdb
 REMARK  2 active torsions:
 REMARK  status: ('A' for Active; 'I' for Inactive)
 REMARK    1  A    between atoms: C1_5  and  C7_11

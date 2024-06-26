@@ -136,6 +136,7 @@ def check_dockingOrders(config: dict) -> None:
         pocketResidues, keepResidues, flexibleResidues = check_info_for_args(dockingOrder, "dockingOrder", ["pocketResidues", "keepResidues", "flexibleResidues"], optional=True)
         ## ensure that these residue-specifying dicts are formatted correctly
         for residues, dictName in zip([pocketResidues, keepResidues, flexibleResidues],["pocketResidues", "keepResidues", "flexibleResidues"]):
+            if not residues: continue
             validate_residue_dict(residues, dictName)
 #########################################################################
 def check_info_for_args(info: dict, infoName: str,  argNames: list, optional: bool) -> list:

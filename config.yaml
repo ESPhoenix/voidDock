@@ -4,17 +4,21 @@
 # outDir - location to save output to
 
 pathInfo:
-  protDir: "/home/nell/voidDock/receptors"
-  ligandDir: "/home/nell/voidDock/ligands"
-  outDir: "/home/nell/voidDock/outputs"
+  protDir: "/home/esp/scriptDevelopment/voidDock/receptors"
+  ligandDir: "/home/esp/scriptDevelopment/voidDock/ligands"
+  outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
+
+methodInfo:
+  dockingMethod: "vina"
+  # gninaExe: "/home/esp/bin/gnina/gnina"
 
 cpuInfo:
-  totalCpuUsage: 12
+  totalCpuUsage: 1
   cpusPerRun: 1
 
 dockingOrders:
   - protein: "lmr_heme_round_2"
-    ligands: ["TPA", "TPA2"]
+    ligands: ["TPA"]
     mutatePocketToAla: True
     pocketResidues: 
       - CHAIN_ID: "A"
@@ -27,12 +31,12 @@ dockingOrders:
         RES_NAME: "ASN"
         RES_ID: 124
 
-    keepResidues: 
-      - CHAIN_ID: "A"
-        RES_NAME: "ASN"
-        RES_ID: 124
+    # keepResidues: 
+    #   - CHAIN_ID: "A"
+    #     RES_NAME: "ASN"
+    #     RES_ID: 124
 
-    flexibleResidues:
-      - CHAIN_ID: "A"
-        RES_NAME: "GLN"
-        RES_ID: 13
+    # flexibleResidues:
+    #   - CHAIN_ID: "A"
+    #     RES_NAME: "GLN"
+    #     RES_ID: 13

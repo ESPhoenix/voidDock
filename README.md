@@ -45,7 +45,7 @@ pip install pdbutils
 ```
 Note that if some of these installs fail, you may need to manually debug the installation(s) that failed
 
-# Step 4: Install Scrwl4
+# Step 4: Install Scwrl4
 
 To get the Scrwl4 program, you will need to obtain a liscense from:
 [The Dunbrack Lab](http://dunbrack.fccc.edu/lab/scwrl, "link to Scwrl4 install instructions")

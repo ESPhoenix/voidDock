@@ -1,21 +1,18 @@
-1. Make sure ligands and multiple chains work properly [x]
-2. Make alanine-izaton optional     [x]
-3. Re-intergrate flexible residues [x]
-4. CLEANCODE
-    a) docstrings and comments  [x]
-    b) type annotations         [x]
-        - str to os.PathLike    [x]
-    c) better imports           []
-5. Sort out process_vina_outputs for flexible docking [X]
-    a) fix elements               [x]
-    b) fix chainID for ligands     [X]
-        - get resName for each ligand 
-        - use that in read_docking_results
+
 6. Add GNINA as another way to do docking simulation        []
     - this should use *most* of the setup functionallity
     - but may require different file formats
     - will need more of a look at the GNINA-spesific parameters
-7. Update README.md     [x]
-    - scwrl4 installation [x]
+
 
 8. Replace scwrl4 with something less annoying to install []
+
+
+9. add any custom args for gnina or vina to the config file []
+
+1. collate_docked_pdbs back on
+
+2. work out a way of docking multiple ligands at the same time with GNINA (works with vina)
+
+## FINAL GNINA COMMAND:
+ginia -l {[ligand.sdf,:], --config.txt} 
