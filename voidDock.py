@@ -7,11 +7,10 @@ import argpass
 import multiprocessing as mp
 import yaml
 # inport util scripts
-from modules_voidDock import gnina_protocol_voidDock as gnina_protocol
-from modules_voidDock import vina_protocol_voidDock as vina_protocol
-from modules_voidDock import vina_prep_voidDock as vina_prep
-from modules_voidDock import gnina_prep_voidDock as gnina_prep
-from  modules_voidDock import config_checker as config_checker
+from modules_voidDock import gnina_protocol_voidDock as gninaProtocol
+from modules_voidDock import vina_protocol_voidDock as vinaProtocol
+from modules_voidDock import shared_prep_voidDock as sharedPrep
+from modules_voidDock import config_checker as configChecker
 # clean code
 from typing import Union, Tuple
 from os import PathLike
@@ -22,7 +21,7 @@ from os import PathLike
 
 def main() -> None:
     # read config file
-    config: dict = config_checker.read_and_validate_config()
+    config: dict = configChecker.read_and_validate_config()
     outDir: Union[PathLike, str] = config["pathInfo"]["outDir"]
     ligandDir: Union[PathLike, str] = config["pathInfo"]["ligandDir"]
     dockingOrders: dict = config["dockingOrders"]
@@ -34,17 +33,15 @@ def main() -> None:
     cpusPerRun: int = config["cpuInfo"]["cpusPerRun"]
     parallelCpus: int = config["cpuInfo"]["totalCpuUsage"] // cpusPerRun
 
+    # pre-prepare ligand pdbqt files    
+    sharedPrep.gen_ligand_pdbqts(dockingOrders, ligandDir)
 
     ## read methodInfo and decide to use VINA or GNINA
     methodInfo: dict = config["methodInfo"]
     if methodInfo["dockingMethod"].upper() == "VINA":
-        dockingProtocolFunc = vina_protocol.docking_protocol
-        # pre-prepare ligand pdbqt files
-        vina_prep.gen_ligand_pdbqts(dockingOrders, ligandDir)
+        dockingProtocolFunc = vinaProtocol.docking_protocol
     elif methodInfo["dockingMethod"].upper() == "GNINA":
-        dockingProtocolFunc = gnina_protocol.docking_protocol
-        # pre-prepare ligand sdf files
-        gnina_prep.gen_ligand_sdfs(dockingOrders, ligandDir)
+        dockingProtocolFunc = gninaProtocol.docking_protocol
     
     ## decide to run serial or parallel
     if parallelCpus == 1:

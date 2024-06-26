@@ -22,7 +22,7 @@ def docking_protocol(config: dict, dockingOrder:dict) -> None:
 
 
     # set up run directory and output key variables
-    protName, protPdb, ligSdfs, runDir = gninaPrep.set_up_directory(outDir=outDir,
+    protName, protPdb, ligPdbqts, runDir = gninaPrep.set_up_directory(outDir=outDir,
                                                              pathInfo=pathInfo,
                                                                dockingOrder=dockingOrder)
 
@@ -49,9 +49,9 @@ def docking_protocol(config: dict, dockingOrder:dict) -> None:
         if len(dockingOrder["flexibleResidues"]) > 0:
             flexibleResidueSyntax: str = gninaPrep.generate_gnina_flexible_residues()
             
-            gninaConfig, dockedPdbqt = gninaPrep.write_gnina_config(outDir=runDir,
+            gninaConfig, dockedPdb = gninaPrep.write_gnina_config(outDir=runDir,
                                                 receptorPdb=protPdb,
-                                                ligands= ligSdfs, 
+                                                ligands= ligPdbqts, 
                                                 flexibleResidueSyntax = flexibleResidueSyntax,
                                                 boxCenter=boxCenter,
                                                 boxSize=30,
@@ -60,7 +60,7 @@ def docking_protocol(config: dict, dockingOrder:dict) -> None:
     else:
         gninaConfig, dockedPdb = gninaPrep.write_gnina_config(outDir=runDir,
                                                 receptorPdb=protPdb,
-                                                ligands= ligSdfs, 
+                                                ligands= ligPdbqts, 
                                                 boxCenter=boxCenter,
                                                 boxSize=30,
                                                 cpus=cpusPerRun)

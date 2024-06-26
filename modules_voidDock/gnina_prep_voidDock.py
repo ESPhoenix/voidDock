@@ -1,37 +1,13 @@
 # import basic libraries
 import os
 import os.path as p
-from subprocess import run
+from subprocess import run, PIPE
 from shutil import copy
 # clean code
 from typing import Union, Tuple, List
 from os import PathLike
 
-#######################################################################
-def gen_ligand_sdfs(dockingOrders: dict, ligandDir: Union[PathLike, str]) -> None:
-    '''
-    Before running docking, generate sdf files for all ligands
-    This saves us from generating a ligand sdf per docking run
-    '''
-    ## loop through ligand pdb files in the docking orders
-    ## append these files to a list
-    ## get unique entries
-    allLigands: list = []
-    for dockingOrder in dockingOrders:
-        ligands: list = dockingOrder["ligands"]
-        for ligand in ligands:
-            allLigands.append(ligand)
-    allLigands: list = list(set(allLigands))
-    ## look in ligandsDir for these ligands
-    ## call pdb_to_pdbqt to convert to pdbqt file
-    for ligand in allLigands:
-        ligPdb: Union[PathLike, str] = p.join(ligandDir, f"{ligand}.pdb")
-        ligSdf: Union[PathLike, str] = p.join(ligandDir, f"{ligand}.sdf")
-        if not p.isfile(ligPdb):
-            print(f"{ligPdb} not found, skipping...")
-            continue
-        obabelCommand : str = f"obabel -i pdb {ligPdb} -o sdf -O {ligSdf}"
-        run(obabelCommand, shell=True) ##TODO: remove shell=True
+
 
 #######################################################################
 def run_gnina(outDir: Union[PathLike, str],
@@ -41,7 +17,7 @@ def run_gnina(outDir: Union[PathLike, str],
     logFile: Union[PathLike, str] = p.join(outDir, "vina_docking.log")
     with open(logFile, "a") as logFile:
         run(f"{gninaExe} --config {gninaConfig}",
-            shell=True, stdout=logFile) ## TODO: make this work without shell=True
+            shell=True, stdout=logFile, stderr=PIPE) ## TODO: make this work without shell=True
 #######################################################################
 def generate_gnina_flexible_residues():
     ...
@@ -69,8 +45,8 @@ def write_gnina_config(
     outFile.write(f"receptor = {receptorPdb}\n")
     if flex:  
         outFile.write(f"flexres = {flexibleResidueSyntax}\n\n")
-    for ligandSdf in ligands:
-        outFile.write(f"ligand = {ligandSdf}\n")
+    for ligandPdbqt in ligands:
+        outFile.write(f"ligand = {ligandPdbqt}\n")
 
     ## docking box center coords (calculated as center of pocket)
     outFile.write(f"center_x = {str(boxCenter[0])}\n")
@@ -110,11 +86,11 @@ def set_up_directory(outDir: Union[PathLike, str],
 
     # read ligand pdb and copy to new run directory
     ligandNames: list = []
-    ligSdfs:  list = []
+    ligPdbqts:  list = []
     for ligandName in ligands:
         ligandNames.append(ligandName)
-        ligSdf: Union[PathLike, str] = p.join(ligandDir, f"{ligandName}.sdf")
-        ligSdfs.append(ligSdf)   
+        ligPdbqt: Union[PathLike, str] = p.join(ligandDir, f"{ligandName}.pdbqt")
+        ligPdbqts.append(ligPdbqt)   
     ## make a unique name for this docking simulation, 
     ## create directory with this name within outDir
     ligandTag: str = "_".join(ligandNames)
@@ -125,4 +101,4 @@ def set_up_directory(outDir: Union[PathLike, str],
     copy(protPdb, protPdbDest)
     protPdb: Union[PathLike, str] = protPdbDest
 
-    return protName, protPdb, ligSdfs, runDir
+    return protName, protPdb, ligPdbqts, runDir

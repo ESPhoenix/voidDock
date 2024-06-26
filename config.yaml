@@ -9,8 +9,8 @@ pathInfo:
   outDir: "/home/esp/scriptDevelopment/voidDock/outputs"
 
 methodInfo:
-  dockingMethod: "vina"
-  # gninaExe: "/home/esp/bin/gnina/gnina"
+  dockingMethod: "gnina"
+  gninaExe: "/home/esp/bin/gnina/gnina"
 
 cpuInfo:
   totalCpuUsage: 1

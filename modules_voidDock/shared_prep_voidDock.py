@@ -6,14 +6,101 @@ import os.path as p
 from subprocess import call, PIPE
 import yaml
 import pandas as pd
+from subprocess import PIPE
 # clean code
-from typing import Union, Tuple
+from typing import Union, Tuple, Literal
 from os import PathLike
 from pandas.core.groupby.generic import DataFrameGroupBy
 ## WellsWood Lab libraries
 import ampal
 import isambard.modelling as modelling
 from pdbUtils import pdbUtils
+
+##########################################################################
+def pdb_to_pdbqt(inPdb: Union[os.PathLike, str],
+                outDir: Union[os.PathLike, str],
+                jobType: Literal["flex","rigid","ligand"]) -> Union[os.PathLike, str]:
+    """
+    Uses openBabel to convert pdb files to pdbqt files for vina inputs
+    Accepts "flex", "rigid", "ligand" jobTypes depending on what degree of flexibility is required
+    """
+    ## get name from input pdb file, use that to name new pdbqt file
+    name = p.splitext(p.basename(inPdb))[0]
+    outPdbqt = p.join(outDir, f"{name}.pdbqt")
+
+    ## depending on jobtype, create an openBabel command
+    ## for flexible residues (the -s flag is special here)
+    if jobType == "flex":
+        obabelCommand = [
+            "obabel",
+            "-i",
+            "pdb",
+            inPdb,
+            "-o",
+            "pdbqt",
+            "-O",
+            outPdbqt,
+            "-xs"]
+    ## for rigid receptors (the -r flag is special here)
+    elif jobType == "rigid":
+        obabelCommand = [
+            "obabel",
+            "-i",
+            "pdb",
+            inPdb,
+            "-o",
+            "pdbqt",
+            "-O",
+            outPdbqt,
+            "-xr"]
+    ## for rigid receptors (the -r flag is special here)
+    elif jobType == "ligand":
+        obabelCommand = [
+            "obabel",
+            "-i",
+            "pdb",
+            inPdb,
+            "-o",
+            "pdbqt",
+            "-O",
+            outPdbqt,
+            "-xn"]
+    ## call the openBabel command 
+    call(obabelCommand, stdout=PIPE, stderr=PIPE)
+    ## openBabel sometimes makes Nitrogen atoms into sodiums, quick fix here!
+    with open(outPdbqt, "r") as f:
+        fileContents = f.read()
+    fileContents = fileContents.replace("NA", "N ")
+
+    with open(outPdbqt, "w") as f:
+        f.write(fileContents)
+
+    return outPdbqt
+
+##########################################################################
+
+def gen_ligand_pdbqts(dockingOrders: dict, ligandDir: Union[PathLike, str]) -> None:
+    '''
+    Before running docking, generate pdbqt files for all ligands
+    This saves us from generating a ligand pdbqt per docking run
+    '''
+    ## loop through ligand pdb files in the docking orders
+    ## append these files to a list
+    ## get unique entries
+    allLigands: list = []
+    for dockingOrder in dockingOrders:
+        ligands: list = dockingOrder["ligands"]
+        for ligand in ligands:
+            allLigands.append(ligand)
+    allLigands: list = list(set(allLigands))
+    ## look in ligandsDir for these ligands
+    ## call pdb_to_pdbqt to convert to pdbqt file
+    for ligand in allLigands:
+        ligPdb: Union[PathLike, str] = p.join(ligandDir, f"{ligand}.pdb")
+        if not p.isfile(ligPdb):
+            print(f"{ligPdb} not found, skipping...")
+            continue
+        pdb_to_pdbqt(ligPdb, ligandDir, jobType="ligand")
 ##########################################################################
 def directed_fpocket(protName: str,
                     runDir: Union[PathLike, str],
