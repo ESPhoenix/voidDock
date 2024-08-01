@@ -11,6 +11,8 @@ pathInfo:
 methodInfo:
   dockingMethod: "gnina"
   gninaExe: "/home/esp/bin/gnina/gnina"
+  extraConfigArgs: 
+    - "--randomize_only" 
 
 cpuInfo:
   totalCpuUsage: 1

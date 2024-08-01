@@ -71,8 +71,6 @@ def collate_docked_pdbs(outDir: Union[PathLike, str], rmDirs: bool = True) -> No
         ## produced by fpocket/docking procedure
         if rmDirs:
             rmtree(runDir)
-##########################################################################
-##########################################################################
 
 ##########################################################################
 def get_ligand_res_names(ligandDir: os.PathLike, ligands: list) -> list:

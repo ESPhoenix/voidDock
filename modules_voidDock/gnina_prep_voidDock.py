@@ -7,8 +7,6 @@ from shutil import copy
 from typing import Union, Tuple, List
 from os import PathLike
 
-
-
 #######################################################################
 def run_gnina(outDir: Union[PathLike, str],
               gninaConfig: Union[PathLike, str],
